@@ -352,86 +352,38 @@ static void drawMenuCard(int x, int y, int w, int h, bool sel, const char *title
     tft.drawRoundRect(x, y, w, h, 6, UI_CARD_BOR);
   }
 
-  // Posición del icono (38x38, tamaño reducido al 95% para márgenes óptimos)
+  // Posición del icono (34x34, perfectamente centrado con amplio margen interior)
   const int iconX = x + SX(14);
-  const int iconY = y + (h - 38) / 2;
+  const int iconY = y + (h - 34) / 2;
 
   if(mode == 0){ // Dado 3D isométrico
-    if(sel) tft.pushImage(iconX, iconY, 38, 38, icon_dice_orange);
-    else    tft.pushImage(iconX, iconY, 38, 38, icon_dice_dim);
+    if(sel) tft.pushImage(iconX, iconY, 34, 34, icon_dice_orange);
+    else    tft.pushImage(iconX, iconY, 34, 34, icon_dice_dim);
   } else if(mode == 1){ // Moneda Bitcoin ₿
-    if(sel) tft.pushImage(iconX, iconY, 38, 38, icon_coin_orange);
-    else    tft.pushImage(iconX, iconY, 38, 38, icon_coin_silver);
+    if(sel) tft.pushImage(iconX, iconY, 34, 34, icon_coin_orange);
+    else    tft.pushImage(iconX, iconY, 34, 34, icon_coin_silver);
   } else if(mode == 2){ // 12 Palabras
-    if(sel) tft.pushImage(iconX, iconY, 38, 38, icon_words12_orange);
-    else    tft.pushImage(iconX, iconY, 38, 38, icon_words12_dim);
+    if(sel) tft.pushImage(iconX, iconY, 34, 34, icon_words12_orange);
+    else    tft.pushImage(iconX, iconY, 34, 34, icon_words12_dim);
   } else if(mode == 3){ // 24 Palabras
-    if(sel) tft.pushImage(iconX, iconY, 38, 38, icon_words24_orange);
-    else    tft.pushImage(iconX, iconY, 38, 38, icon_words24_dim);
+    if(sel) tft.pushImage(iconX, iconY, 34, 34, icon_words24_orange);
+    else    tft.pushImage(iconX, iconY, 34, 34, icon_words24_dim);
   }
 
-  // Título con FreeSansBold 9pt
-  const int textX = iconX + 38 + SX(12);
+  // Título y subtítulo centrados verticalmente dentro de la tarjeta
+  const int textX = iconX + 34 + SX(12);
+  const int textY = y + (h - SY(30)) / 2;
+
   tft.setFreeFont(FSSB9);
   tft.setTextDatum(TL_DATUM);
   tft.setTextColor(sel ? UI_TEXT : 0xC618, bgCol);
-  tft.drawString(title, textX, y + SY(11), GFXFF);
+  tft.drawString(title, textX, textY, GFXFF);
 
-  // Subtítulo con FreeSans 9pt en minúsculas tácticas
   tft.setFreeFont(FSS9);
   tft.setTextDatum(TL_DATUM);
   tft.setTextColor(sel ? 0x9CD3 : 0x6B4D, bgCol);
-  tft.drawString(sub, textX, y + SY(32), GFXFF);
+  tft.drawString(sub, textX, textY + SY(17), GFXFF);
   tft.setTextDatum(TL_DATUM);
-}
-
-/* Animación de giro 3D para la selección del dado */
-void animateDiceSelection(void){
-  int cardX, cardW, cardH, y1, y2;
-  getMenuCardLayout(cardX, cardW, cardH, y1, y2);
-  const int iconX = cardX + SX(14);
-  const int iconY = y1 + (cardH - 38) / 2;
-
-  // Destello en el borde de la tarjeta seleccionada
-  tft.drawRoundRect(cardX, y1, cardW, cardH, 6, UI_ACCENT);
-
-  // Giro isométrico 3D de 2 vueltas
-  for(int loop = 0; loop < 2; loop++){
-    for(int f = 0; f < 6; f++){
-      tft.pushImage(iconX, iconY, 38, 38, dice_spin_frames[f]);
-      delay(24);
-    }
-  }
-  tft.pushImage(iconX, iconY, 38, 38, icon_dice_orange);
-  delay(60);
-}
-
-/* Animación de volteo 180° en perspectiva para la selección de la moneda */
-void animateCoinSelection(void){
-  int cardX, cardW, cardH, y1, y2;
-  getMenuCardLayout(cardX, cardW, cardH, y1, y2);
-  const int iconX = cardX + SX(14);
-  const int iconY = y2 + (cardH - 38) / 2;
-
-  // Destello en el borde de la tarjeta seleccionada
-  tft.drawRoundRect(cardX, y2, cardW, cardH, 6, UI_ACCENT);
-
-  // Giro de 180 grados con rotación en perspectiva horizontal
-  for(int f = 0; f < 7; f++){
-    tft.pushImage(iconX, iconY, 38, 38, coin_flip_frames[f]);
-    delay(38);
-  }
-  delay(100);
-}
-
-/* Destello táctico de selección en el menú de palabras */
-void animateWordsSelection(bool is12){
-  int cardX, cardW, cardH, y1, y2;
-  getMenuCardLayout(cardX, cardW, cardH, y1, y2);
-  const int y = is12 ? y1 : y2;
-  tft.drawRoundRect(cardX, y, cardW, cardH, 6, UI_ACCENT);
-  tft.drawRoundRect(cardX + 1, y + 1, cardW - 2, cardH - 2, 5, UI_ACCENT);
-  delay(120);
 }
 
 /* Animación de deslizamiento fluido de la píldora de selección entre tarjetas */
@@ -470,7 +422,7 @@ static void animateSelectionSlide(int cardX, int cardW, int cardH, int fromY, in
 
     tft.fillRoundRect(pillX, curPillY, pillW, pillH, 2, UI_ACCENT);
     lastPillY = curPillY;
-    delay(16);
+    delay(14);
   }
 }
 
@@ -482,14 +434,33 @@ void menu(bool diceSelected, bool animate){
     const int fromY = diceSelected ? y2 : y1;
     const int toY   = diceSelected ? y1 : y2;
     animateSelectionSlide(cardX, cardW, cardH, fromY, toY);
+    drawMenuCard(cardX, y1, cardW, cardH, diceSelected, "DICE SEED", "50 or 99 rolls", 0);
+    drawMenuCard(cardX, y2, cardW, cardH, !diceSelected, "COIN SEED", "128 or 256 flips", 1);
+
+    // Giro 360° inmediato en el icono de la opción recién seleccionada
+    const int iconX = cardX + SX(14);
+    if(diceSelected){
+      const int iconY = y1 + (cardH - 34) / 2;
+      for(int f = 0; f < 12; f++){
+        tft.pushImage(iconX, iconY, 34, 34, dice_spin_frames[f]);
+        delay(16);
+      }
+      tft.pushImage(iconX, iconY, 34, 34, icon_dice_orange);
+    } else {
+      const int iconY = y2 + (cardH - 34) / 2;
+      for(int f = 0; f < 12; f++){
+        tft.pushImage(iconX, iconY, 34, 34, coin_spin_frames[f]);
+        delay(16);
+      }
+      tft.pushImage(iconX, iconY, 34, 34, icon_coin_orange);
+    }
   } else {
     tft.fillScreen(UI_BG);
     brandHead();
     thinRail(y1, y2, cardH);
+    drawMenuCard(cardX, y1, cardW, cardH, diceSelected, "DICE SEED", "50 or 99 rolls", 0);
+    drawMenuCard(cardX, y2, cardW, cardH, !diceSelected, "COIN SEED", "128 or 256 flips", 1);
   }
-
-  drawMenuCard(cardX, y1, cardW, cardH, diceSelected, "DICE SEED", "50 or 99 rolls", 0);
-  drawMenuCard(cardX, y2, cardW, cardH, !diceSelected, "COIN SEED", "128 or 256 flips", 1);
 }
 
 void words(uint8_t nWords, bool animate){
