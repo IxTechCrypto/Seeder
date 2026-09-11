@@ -1,142 +1,122 @@
 # SEEDER - Sovereign seed generator
 
-Un dispositivo DIY que te permite crear tus propias semillas de Bitcoin en cuestión
-de segundos, sin depender de nadie ni de nada para salvaguardar tus fondos.
+A DIY device that allows you to create your own Bitcoin seeds in a matter of seconds, without depending on anyone or anything to safeguard your funds.
 
-Con la SEEDER puedes hacer el proceso **semilla moneda**, generar entropía con
-**dados**, y **calcular la última palabra de tu semilla sin esfuerzo**, además de
-exportarla mediante un código QR.
+With SEEDER you can perform the **coin seed** process, generate entropy using **dice**, and **effortlessly calculate the final word of your seed (with checksum)**, as well as export it via a QR code.
 
-Todo ello gracias a la genial idea de @Lunaticoin y mi trabajo.
+All of this thanks to the brilliant idea of @Lunaticoin and my implementation.
 
-![SEEDER, genera semillas offline](Images/Seeder_cover.jpg)
+![SEEDER, generates offline seeds](Images/Seeder_cover.jpg)
 
-## La SEEDER no genera entropía
+## SEEDER does not generate entropy
 
-Esto es lo que hace distinta a la v2: **el dispositivo no tiene generador de números
-aleatorios**. La entropía la pones tú, con una moneda o con un dado, y la SEEDER se
-limita a hacer las cuentas de BIP39 delante de ti.
+This is what sets v2 apart: **the device does not have a random number generator (RNG)**. You provide the entropy yourself, using a coin or a die, and SEEDER simply performs the BIP39 math right in front of you.
 
-Y esas cuentas las puedes rehacer por tu lado. La SEEDER te enseña la entropía en
-hexadecimal en la pantalla `Entropy (hex)`. Con ese hex y cualquier herramienta BIP39
-offline obtienes exactamente las mismas palabras. Si no coinciden, tira el aparato.
+And you can verify that math independently on your own machine. SEEDER displays the entropy in hexadecimal on the `Entropy (hex)` screen. Using that hex value and any offline BIP39 tool, you obtain the exact same words. If they do not match, discard the device.
 
-| Modo | Entradas | Entropía |
+| Mode | Input | Entropy |
 |---|---|---|
-| Moneda | 128 tiradas (12 palabras) / 256 (24) | los bits, tal cual, sin pasar por ningún hash |
-| Dado   | 50 tiradas (12 palabras) / 99 (24)   | `SHA-256` de los dígitos en ASCII |
+| Coin | 128 flips (12 words) / 256 flips (24 words) | Raw bits, as-is, without passing through any hash |
+| Dice | 50 rolls (12 words) / 99 rolls (24 words) | `SHA-256` of the ASCII digits |
 
-El modo dado usa el mismo esquema que la Coldcard, así que puedes verificarlo desde
-un terminal:
+The dice mode uses the exact same scheme as Coldcard, so you can verify it directly from a terminal:
 
 ```bash
 printf '3141592653...' | sha256sum
 ```
 
-Con 24 palabras se usan los 32 bytes del hash; con 12 palabras, los **16 primeros**
-(los 32 primeros caracteres del hex). Es lo mismo que hace la Coldcard.
+For 24 words, all 32 bytes of the hash are used; for 12 words, only the **first 16 bytes** (the first 32 hex characters) are used. This is identical to Coldcard's methodology.
 
-Y el modo moneda no aplica ningún hash: los bits que lanzas **son** la entropía. Eso
-te permite además meter una entropía que ya tengas y dejar que la SEEDER te calcule
-la última palabra con su checksum.
+And coin mode does not apply any hashing: the bits you flip **are** the entropy. This also allows you to input pre-existing entropy and let SEEDER compute the final word along with its checksum.
 
-## Requisitos
+## Requirements
 
-Cualquiera de las dos placas:
+Either of the two supported boards:
 
-| Placa | Pantalla | Binario |
+| Board | Display | Binary |
 |---|---|---|
 | LilyGO TTGO T-Display (ESP32) | 240x135 | `seeder-tdisplay-merged.bin` |
 | LilyGO T-Display-S3 (ESP32-S3) | 320x170 | `seeder-tdisplay-s3-merged.bin` |
 
-Y un cable USB-C.
+Along with a USB-C cable.
 
-Opcionalmente admite una LiPo por el conector JST. La placa no trae interruptor,
-pero **sí se puede apagar por firmware**: cómo hacerlo, y qué esperar del consumo
-en reposo, está en [HARDWARE.md](HARDWARE.md).
+Optionally, it accepts a LiPo battery via the JST connector. The board does not include a physical power switch, but **it can be powered down via firmware**: how to do this, and what to expect regarding standby power consumption, is detailed in [HARDWARE.md](HARDWARE.md).
 
-## Instalación
+## Installation
 
-Todo sale de la [última release](https://github.com/BitMaker-hub/Seeder/releases).
-Hay dos caminos: uno cómodo y otro comprobable. Elige según lo que te juegues.
+Everything is available in the [latest release](https://github.com/BitMaker-hub/Seeder/releases).
+There are two paths: convenient, or fully verifiable. Choose based on your risk tolerance.
 
-### Vía rápida — desde el navegador
+### Quick route — via browser
 
-Descarga `seeder-firmware-merged.bin` y flaséalo con
-[esptool-js](https://espressif.github.io/esptool-js/) en el offset **0x0**.
-Un solo archivo, nada que instalar.
+Download `seeder-firmware-merged.bin` (or the board-specific merged binary) and flash it using [esptool-js](https://espressif.github.io/esptool-js/) at offset **0x0**.
+A single file, nothing to install.
 
-> Cómodo, pero estás confiando en que la página te sirvió el binario correcto.
-> Para una semilla de verdad, haz también la comprobación de abajo.
+> Convenient, but you are trusting that the web page served you the correct binary.
+> For an actual production seed holding real funds, perform the terminal verification below as well.
 
-### Vía manual — desde el terminal, y verificable
+### Manual route — via terminal, fully verifiable
 
-Descarga la release entera, incluido el `SHA256SUMS`, y comprueba que lo que te
-has bajado es lo que la CI publicó:
+Download the complete release, including `SHA256SUMS`, and verify that what you downloaded matches what CI published:
 
 ```bash
 sha256sum -c SHA256SUMS
 ```
 
-Flashea:
+Flash:
 
 ```bash
-esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 460800   write_flash -z 0x0 seeder-firmware-merged.bin
+esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 460800 write_flash -z 0x0 seeder-tdisplay-merged.bin
 ```
 
-Y comprueba que el chip contiene de verdad ese binario:
+And verify that the chip flash genuinely matches that binary:
 
 ```bash
-esptool.py --port /dev/ttyUSB0 --no-stub verify_flash 0x0 seeder-firmware-merged.bin
+esptool.py --port /dev/ttyUSB0 --no-stub verify_flash 0x0 seeder-tdisplay-merged.bin
 ```
 
-En Windows el puerto es `COM3` o similar. Ese último paso es el que importa y
-está explicado en [SECURITY.md](SECURITY.md): con `--no-stub` la aplicación de la
-SEEDER ni se ejecuta, responde el bootloader de la ROM del chip, así que un
-firmware manipulado no puede mentir sobre lo que hay en la flash.
+On Windows, the port will be `COM3` or similar. That last step is what matters most and is explained in [SECURITY.md](SECURITY.md): with `--no-stub`, the SEEDER application code does not even execute—the ESP32 mask-ROM bootloader responds directly, meaning a compromised firmware cannot spoof flash verification.
 
-## Compilar desde fuente
+## Building from source
+
+Using PlatformIO:
 
 ```bash
-pio run -e seeder
+# For LilyGO TTGO T-Display (ESP32)
+pio run -e tdisplay
+
+# For LilyGO T-Display-S3 (ESP32-S3)
+pio run -e tdisplay-s3
 ```
 
-Las librerías (`uBitcoin`, `TFT_eSPI`) van fijadas dentro de `lib/` a propósito:
-un generador de semillas debe compilar igual hoy que dentro de cinco años.
+The libraries (`uBitcoin`, `TFT_eSPI`) are vendored inside `lib/` by design: a seed generator must compile identically today or five years from now without breaking upstream dependencies.
 
-## Controles
+## Controls
 
-Dos botones y nada más. **MOVE** es el de arriba y **OK** el de abajo.
+Two buttons and nothing more. **MOVE** is the top button, and **OK** is the bottom button.
 
-| Dónde estás | MOVE | OK |
+| Context | MOVE | OK |
 |---|---|---|
-| Menú y elección de palabras | cambia la opción | acepta |
-| Lanzando la moneda | cara | cruz |
-| Tirando el dado | 1 → 6 | acepta la tirada |
-| Leyendo la semilla | página siguiente | página anterior |
-| Última página (`Exit`) | vuelve a la primera | mantener para salir y borrar |
+| Menu & word count selection | Change selection | Confirm selection |
+| Flipping coin | Heads (1) | Tails (0) |
+| Rolling dice | Cycle 1 → 6 | Confirm roll |
+| Reading seed | Next page | Previous page |
+| Last page (`Exit`) | Return to first page | Hold to exit and wipe memory |
 
-Durante la captura, **mantener OK tres segundos vuelve al menú** y borra lo que
-llevaras metido: si te has equivocado en la tirada 40 de 99 no hace falta
-desenchufar el aparato. A los ~1,2 s aparece el aviso con una barra que se llena;
-si sueltas antes, esa pulsación no cuenta como cara, cruz ni tirada.
+During input capture, **holding OK for 3 seconds returns to the menu** and clears all captured entropy: if you made a mistake on roll 40 of 99, you do not need to unplug the device. At ~1.2s, a progress bar appears; releasing before it fills will not record an inadvertent flip or roll.
 
-## Verificación
+## Verification
 
-No te fíes de la SEEDER: compruébala. La pantalla `Entropy (hex)` te enseña los
-bytes de los que salieron tus palabras, y con ese hex y cualquier herramienta BIP39
-**offline** puedes rehacer las cuentas. Si no coinciden, no uses el aparato.
+Do not blindly trust SEEDER: verify it. The `Entropy (hex)` screen shows you the exact raw bytes that generated your words. Using that hex value and any **offline** BIP39 tool, you can recompute the seed words. If they do not match, do not use the device.
 
-Hazlo con **tu propia entropía**, no con los vectores publicados: un firmware
-malicioso reconoce las tiradas de prueba y se porta bien sólo ahí.
+Always do this with **your own entropy**, not with published test vectors: malicious firmware could recognize hardcoded test inputs and behave honestly only during testing.
 
-El modelo de amenazas completo, y qué no cubre, está en [SECURITY.md](SECURITY.md).
+For the complete threat model and limitations, see [SECURITY.md](SECURITY.md).
 
-> La semilla nunca sale del dispositivo ni se escribe en flash: sólo vive en RAM y
-> desaparece al desconectarlo. El firmware tampoco imprime nada por el puerto serie.
+> The seed never leaves the device and is never written to flash: it only resides in volatile RAM and disappears upon disconnection. The firmware outputs nothing over the serial UART.
 
 ## TUTORIAL
 
-Tutorial completo en YouTube:
+Complete video tutorial on YouTube:
 
-[![Ver video aquí](https://img.youtube.com/vi/2K7ztWxtyY8/0.jpg)](https://youtu.be/2K7ztWxtyY8)
+[![Watch video here](https://img.youtube.com/vi/2K7ztWxtyY8/0.jpg)](https://youtu.be/2K7ztWxtyY8)

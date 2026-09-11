@@ -32,5 +32,10 @@ class sButton
          unsigned long heldMs(void); //How long the button has been held, 0 if released
    } ;
 
+/**************🍃 POWER / BATTERY ********************/
+uint16_t getBatteryMilliVolts(void);
+bool isPowerPlugged(void);
+uint8_t getBatteryPercent(void);
+
 
 

@@ -15,6 +15,7 @@ void die(int x, int y, int size, uint8_t value, uint16_t col);
 void coin(int x, int y, int size, uint16_t col);
 void caret(int cx, int y, int w, int h, uint16_t col);
 void bar(int x, int y, int w, int h, float frac);
+void drawPower(int x, int y, uint16_t fgCol, uint16_t bgCol);
 
 /*** Pantallas ***/
 void splash(void);

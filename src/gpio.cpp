@@ -96,6 +96,44 @@ void sButton::check(void)
     }
 }
 
+/*****************🍃 POWER / BATTERY MEASUREMENT *********************/
+
+#if defined(SEEDER_BOARD_TDISPLAY_S3)
+#include "hal/usb_serial_jtag_ll.h"
+#endif
+
+uint16_t getBatteryMilliVolts(void){
+#if defined(PIN_BAT_ADC)
+  uint32_t sum = 0;
+  for(int i = 0; i < 8; i++){
+    sum += analogReadMilliVolts(PIN_BAT_ADC);
+    delayMicroseconds(50);
+  }
+  return (uint16_t)((sum / 8) * 2);
+#else
+  return 0;
+#endif
+}
+
+bool isPowerPlugged(void){
+#if defined(SEEDER_BOARD_TDISPLAY_S3)
+  // Check if USB hardware is receiving SOF frames from a USB host (PC)
+  if(USB_SERIAL_JTAG.int_raw.sof_int_raw == 1){
+    return true;
+  }
+#endif
+  // When plugged in with no battery or while charging, charger pulls line >= 4180mV
+  uint16_t mv = getBatteryMilliVolts();
+  return (mv >= 4180);
+}
+
+uint8_t getBatteryPercent(void){
+  uint16_t mv = getBatteryMilliVolts();
+  if(mv >= 4150) return 100;
+  if(mv <= 3400) return 0;
+  return (uint8_t)((mv - 3400) * 100 / (4150 - 3400));
+}
+
 
 
 

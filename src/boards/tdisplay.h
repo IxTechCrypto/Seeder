@@ -9,4 +9,5 @@
 
 #define PIN_MOVE          35     // botón de arriba
 #define PIN_SELECT        0      // botón de abajo (BOOT)
+#define PIN_BAT_ADC       34     // divisor de batería 1:2
 /* Sin pin de alimentación de periféricos: la pantalla cuelga del 3V3 */

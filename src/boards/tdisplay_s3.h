@@ -13,3 +13,4 @@
 #define PIN_MOVE          14     // botón de arriba
 #define PIN_SELECT        0      // botón de abajo (BOOT)
 #define PIN_POWER_ON      15     // alimentación de periféricos, alto = encendido
+#define PIN_BAT_ADC       4      // divisor de batería 1:2

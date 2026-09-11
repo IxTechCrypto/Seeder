@@ -2,6 +2,7 @@
 #include <TFT_eSPI.h>
 #include "theme.h"
 #include "ui.h"
+#include "../gpio.h"
 #include "../Lib/images.h"
 #include "../Lib/Free_Fonts.h"
 #include "../qrcoded.h"
@@ -140,7 +141,59 @@ static void rail(const char *topAct, const char *botAct, bool showKeys){
   caret(UI_RAIL_CX, SY(124), SX(9), SY(-6), UI_DIM);
 }
 
-static void eyebrow(const char *s){ tiny(s, UI_M, SY(10), UI_ACCENT, 'L', 1); }
+void drawPower(int x, int y, uint16_t fgCol, uint16_t bgCol){
+  const bool plugged = isPowerPlugged();
+  if(plugged){
+    // Modern bold Plug icon (+35% size: 27px wide x 16px high)
+    tft.fillRect(x, y, 29, 16, bgCol);
+    // Two bold prongs (3px thick, 6px long)
+    tft.fillRect(x,     y + 2, 6, 3, fgCol);
+    tft.fillRect(x,     y + 11, 6, 3, fgCol);
+    // Plug body with rounded corners (12x14 block)
+    tft.fillRoundRect(x + 6, y + 1, 12, 14, 3, fgCol);
+    // Sleek dual vertical notches in contrasting background color
+    tft.drawFastVLine(x + 10, y + 4, 8, bgCol);
+    tft.drawFastVLine(x + 13, y + 4, 8, bgCol);
+    // Strain relief collar & cord
+    tft.fillRect(x + 18, y + 5, 3, 6, fgCol);
+    tft.fillRect(x + 21, y + 6, 6, 4, fgCol);
+  } else {
+    // Modern segmented Battery gauge (+35% size: 32px wide x 16px high)
+    const uint8_t pct = getBatteryPercent();
+    tft.fillRect(x, y, 34, 16, bgCol);
+    // Bold 2-pixel outer rounded shell
+    tft.drawRoundRect(x,     y,     27, 16, 4, fgCol);
+    tft.drawRoundRect(x + 1, y + 1, 25, 14, 3, fgCol);
+    // Positive terminal pip (smooth rounded)
+    tft.fillRoundRect(x + 27, y + 4, 4, 8, 2, fgCol);
+
+    // Segment color based on charge level
+    uint16_t segCol;
+    if(pct <= 20){
+      segCol = 0xF800; // Alert Red
+    } else if(pct <= 45){
+      segCol = 0xFFE0; // Amber / Yellow
+    } else {
+      segCol = (bgCol == UI_ACCENT) ? fgCol : UI_ACCENT; // Clean theme green / dark
+    }
+
+    // 3 sleek segmented bars inside
+    if(pct > 5){
+      tft.fillRoundRect(x + 4, y + 4, 6, 8, 1, segCol);
+    }
+    if(pct >= 35){
+      tft.fillRoundRect(x + 11, y + 4, 6, 8, 1, segCol);
+    }
+    if(pct >= 70){
+      tft.fillRoundRect(x + 18, y + 4, 6, 8, 1, segCol);
+    }
+  }
+}
+
+static void eyebrow(const char *s){
+  tiny(s, UI_M, SY(10), UI_ACCENT, 'L', 1);
+  drawPower(UI_RAIL_X - SX(38), SY(4), UI_TEXT, UI_BG);
+}
 
 /* Número grande: el único elemento a voz alta de la pantalla */
 static int bigNumber(int n, int baselineY){
@@ -162,6 +215,7 @@ static void head(const char *title, uint8_t step, uint8_t total){
     char b[8]; snprintf(b, sizeof(b), "%u/%u", step, total);
     tiny(b, UI_W-UI_M, SY(10), UI_DIM, 'R', 0);
   }
+  drawPower(UI_W - UI_M - (total ? SX(68) : SX(36)), SY(4), UI_TEXT, UI_BG);
   tft.drawFastHLine(UI_M, SY(20), UI_W - 2*UI_M, UI_TRACK);
 }
 
@@ -232,6 +286,7 @@ static void greenHead(void){
                 seederMarkWidth, seederMarkHeight, seederMark);
   tft.pushImage(UI_W - leafMarkWidth - SX(10), (UI_HEAD_H-leafMarkHeight)/2,
                 leafMarkWidth, leafMarkHeight, leafMark);
+  drawPower(UI_W - leafMarkWidth - SX(10) - SX(42), (UI_HEAD_H - 16) / 2, UI_BG, UI_ACCENT);
 }
 
 /* Raíl estrecho, sólo símbolos: arriba dos puntas opuestas para
