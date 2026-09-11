@@ -105,6 +105,18 @@ Two buttons and nothing more. **MOVE** is the top button, and **OK** is the bott
 
 During input capture, **holding OK for 3 seconds returns to the menu** and clears all captured entropy: if you made a mistake on roll 40 of 99, you do not need to unplug the device. At ~1.2s, a progress bar appears; releasing before it fills will not record an inadvertent flip or roll.
 
+## Recent UI & Firmware Updates
+
+Recent enhancements made to modernize the interface and user experience:
+
+* **Dynamic Power & Battery Status (Zero Hardware Changes Required)**:
+  * Uses the board's built-in factory resistor divider (`GPIO 4` on T-Display-S3, `GPIO 34` on classic T-Display) along with native USB SOF detection.
+  * **USB Plug Indicator (`==[ ]-`)**: Displayed automatically in the top header whenever the device is powered via USB-C or actively charging.
+  * **Segmented Battery Gauge**: When running on battery power alone (unplugged from USB), automatically switches to a 3-segment pill battery gauge with real-time color-coding (Green $>45\%$, Amber $20-45\%$, Alert Red $\le 20\%$).
+* **Modernized High-DPI Iconography**:
+  * Enlarged and bolder vector status icons (+35% visual weight) with rounded geometry, strain relief, and grip details optimized for the 320×170 display.
+  * Integrated consistently across the Main Menu, Word Selection, Dice/Coin Capture, and Seed Review screens.
+
 ## Verification
 
 Do not blindly trust SEEDER: verify it. The `Entropy (hex)` screen shows you the exact raw bytes that generated your words. Using that hex value and any **offline** BIP39 tool, you can recompute the seed words. If they do not match, do not use the device.
