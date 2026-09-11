@@ -967,8 +967,9 @@ int8_t qrcode_initBytes(QRCode *qrcoded, uint8_t *modules, uint8_t version, uint
     // Place the data code words into the buffer
     int8_t mode = encodeDataCodewords(&codewords, data, length, version);
 
-    if (mode < 0)
+    if (mode < 0 || codewords.bitOffsetOrWidth > (uint32_t)dataCapacity * 8)
     {
+        memset(codewordBytes, 0, sizeof(codewordBytes));
         return -1;
     }
     qrcoded->mode = mode;
@@ -1024,6 +1025,8 @@ int8_t qrcode_initBytes(QRCode *qrcoded, uint8_t *modules, uint8_t version, uint
     // Apply the final choice of mask
     applyMask(&modulesGrid, &isFunctionGrid, mask);
 
+    memset(codewordBytes, 0, sizeof(codewordBytes));
+    memset(isFunctionGridBytes, 0, sizeof(isFunctionGridBytes));
     return 0;
 }
 

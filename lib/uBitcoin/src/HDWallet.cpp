@@ -286,6 +286,8 @@ int HDPrivateKey::fromMnemonic(const char * mnemonic, size_t mnemonicSize, const
         }
     }
     fromSeed(seed, sizeof(seed), net);
+    memzero(seed, sizeof(seed));
+    memzero(u, sizeof(u));
     return 1;
 }
 #if USE_ARDUINO_STRING || USE_STD_STRING

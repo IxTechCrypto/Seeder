@@ -13,7 +13,9 @@ enum { coinEntropy, diceEntropy };
  host PC. The mnemonic and the raw entropy are never printed, at any level.
  This flag only enables harmless UI traces (button events).
 **********************************/
-#define SEEDER_DEBUG      0
+#ifndef SEEDER_DEBUG
+  #define SEEDER_DEBUG      0
+#endif
 
 #if SEEDER_DEBUG
   #define DBGLN(x)        Serial.println(x)

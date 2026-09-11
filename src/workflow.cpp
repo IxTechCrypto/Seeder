@@ -4,6 +4,8 @@
 #include "GlobalVARS.h"
 #include "workflow.h"
 #include "ui/ui.h"
+#include "utility/trezor/memzero.h"
+#include "utility/trezor/bip39.h"
 
 /**********************🍃 GLOBAL Vars *******************************/
 extern sWallet myWallet;
@@ -27,7 +29,8 @@ static uint8_t seedStep(void) { return (myWallet.nWords == 12 && menuSeed > SHOW
 
 //Asignar "" sólo pone la longitud a cero: el texto se queda en el buffer
 static void wipeString(String &s){
-  for(unsigned int i = 0; i < s.length(); i++) s[i] = '\0';
+  volatile char *p = (volatile char *)s.c_str();
+  for(unsigned int i = 0; i < s.length(); i++) p[i] = '\0';
   s = "";
 }
 
@@ -38,17 +41,18 @@ void wipeSeed(void){
   wipeString(myWallet.entropyHex);
   wipeString(myWallet.xpub);
   wipeString(myWallet.firstAddress);
-  memset(entropy,   0, sizeof(entropy));
-  memset(diceRolls, 0, sizeof(diceRolls));
+  memzero(entropy,   sizeof(entropy));
+  memzero(diceRolls, sizeof(diceRolls));
+  mnemonic_clear();
   myWallet.nBCoinEntropy = 0;
   myWallet.nRolls = 0;
-  diceValue = 1; memset(rollHist, 0, sizeof(rollHist));
+  diceValue = 1; memzero(rollHist, sizeof(rollHist));
 }
 
 //Siempre antes de capturar: entropy[] es global y si no arrastraría bits de
 //una semilla anterior, y el resultado dejaría de ser verificable.
 void resetEntropy(void){
-  memset(entropy, 0, sizeof(entropy));
+  memzero(entropy, sizeof(entropy));
   myWallet.nBCoinEntropy = 0;
 }
 
@@ -160,8 +164,8 @@ void doMenuWords(void){
       myWallet.State  = STATE_DICESEED;
       myWallet.nRolls = 0;
       diceValue = 1;
-      memset(diceRolls, 0, sizeof(diceRolls));
-      memset(rollHist,  0, sizeof(rollHist));
+      memzero(diceRolls, sizeof(diceRolls));
+      memzero(rollHist,  sizeof(rollHist));
       ui::diceEnter(diceRollsNeeded());
       ui::diceUpdate(0, diceRollsNeeded(), diceValue, rollHist);
     }
