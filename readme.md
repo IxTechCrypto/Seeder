@@ -109,12 +109,20 @@ During input capture, **holding OK for 3 seconds returns to the menu** and clear
 
 Recent enhancements made to modernize the interface and user experience:
 
+* **Sovereign Tactical UI (Bitcoin Orange Edition)**:
+  * Overhauled the color palette to Bitcoin Electric Orange (`#F7931A` / `0xFD00`) on deep obsidian black (`#000000`) and elevated slate card fills.
+  * Replaced the retro green bar with a sleek, dark tactical header featuring an air-gapped security badge, electric orange pill accent, and real-time power status.
+* **Floating Glowing Cards & Futuristic Typography**:
+  * Upgraded menu options ("DICE SEED", "COIN SEED", "12 WORDS", "24 WORDS") into rounded floating cards with glowing double-borders and ambient glow halos (`0x9340`).
+  * Converted blocky 5×7 pixel text to crisp vector sans-serif typography using Adafruit GFX `FreeSansBold 9pt` (`FSSB9`) and `FreeSansBold 12pt` (`FSSB12`).
+* **Sliding Menu Selection Animation**:
+  * Implemented butter-smooth 60 FPS ease-out sliding animation: pressing **MOVE** smoothly translates the vertical orange selection pill between cards (~95ms duration) while seamlessly transitioning card border glow without screen flicker.
 * **Dynamic Power & Battery Status (Zero Hardware Changes Required)**:
   * Uses the board's built-in factory resistor divider (`GPIO 4` on T-Display-S3, `GPIO 34` on classic T-Display) along with native USB SOF detection.
-  * **USB Plug Indicator (`==[ ]-`)**: Displayed automatically in the top header whenever the device is powered via USB-C or actively charging.
-  * **Segmented Battery Gauge**: When running on battery power alone (unplugged from USB), automatically switches to a 3-segment pill battery gauge with real-time color-coding (Green $>45\%$, Amber $20-45\%$, Alert Red $\le 20\%$).
+  * **USB Plug Indicator**: Displayed automatically in the top header whenever the device is powered via USB-C or actively charging.
+  * **Segmented Battery Gauge**: When running on battery power alone (unplugged from USB), automatically switches to a 3-segment pill battery gauge with real-time color-coding (Electric Orange $>45\%$, Amber $20-45\%$, Alert Red $\le 20\%$).
 * **Modernized High-DPI Iconography**:
-  * Enlarged and bolder vector status icons (+35% visual weight) with rounded geometry, strain relief, and grip details optimized for the 320×170 display.
+  * Enlarged and bolder vector status icons (+35% visual weight) with rounded geometry, strain relief, and grip details optimized for high DPI displays.
   * Integrated consistently across the Main Menu, Word Selection, Dice/Coin Capture, and Seed Review screens.
 
 ## Verification

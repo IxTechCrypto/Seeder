@@ -191,8 +191,9 @@ void drawPower(int x, int y, uint16_t fgCol, uint16_t bgCol){
 }
 
 static void eyebrow(const char *s){
-  tiny(s, UI_M, SY(10), UI_ACCENT, 'L', 1);
-  drawPower(UI_RAIL_X - SX(38), SY(4), UI_TEXT, UI_BG);
+  tft.fillRoundRect(UI_M, SY(5), SX(3), SY(11), 1, UI_ACCENT);
+  tiny(s, UI_M + SX(7), SY(7), UI_ACCENT, 'L', 1);
+  drawPower(UI_RAIL_X - SX(38), SY(3), UI_TEXT, UI_BG);
 }
 
 /* Número grande: el único elemento a voz alta de la pantalla */
@@ -206,17 +207,17 @@ static int bigNumber(int n, int baselineY){
   return tft.getCursorX();
 }
 
-/* Cabecera de las pantallas de semilla: etiqueta, paso y una regla fina.
-   Sustituye a la franja verde maciza, que era lo que más envejecía la v1. */
+/* Cabecera de las pantallas de semilla: etiqueta, paso y una regla fina táctica. */
 static void head(const char *title, uint8_t step, uint8_t total){
   tft.fillScreen(UI_BG);
-  tiny(title, UI_M, SY(10), UI_ACCENT, 'L', 1);
+  tft.fillRoundRect(UI_M, SY(5), SX(3), SY(11), 1, UI_ACCENT);
+  tiny(title, UI_M + SX(7), SY(7), UI_ACCENT, 'L', 1);
   if(total){
     char b[8]; snprintf(b, sizeof(b), "%u/%u", step, total);
-    tiny(b, UI_W-UI_M, SY(10), UI_DIM, 'R', 0);
+    tiny(b, UI_W-UI_M, SY(7), UI_DIM, 'R', 0);
   }
-  drawPower(UI_W - UI_M - (total ? SX(68) : SX(36)), SY(4), UI_TEXT, UI_BG);
-  tft.drawFastHLine(UI_M, SY(20), UI_W - 2*UI_M, UI_TRACK);
+  drawPower(UI_W - UI_M - (total ? SX(68) : SX(36)), SY(3), UI_TEXT, UI_BG);
+  tft.drawFastHLine(UI_M, SY(18), UI_W - 2*UI_M, UI_TRACK);
 }
 
 /* Cuerpo de texto. Una sola tipografía por pantalla: o toda pequeña o toda
@@ -275,75 +276,192 @@ void splash(void){
   tft.fillScreen(UI_BG);
 }
 
-/* Cabecera de marca: verde macizo con tinta negra. Es lo que separa el menú
-   de las pantallas de trabajo, y por eso vuelve. Sin la palabra MENU: ya se
-   ve. El logotipo y la hoja son recortes del arte original (ver brand.h). */
-static void greenHead(void){
-  tft.fillRect(0, 0, UI_W, UI_HEAD_H, UI_ACCENT);
-  /* Los dos son bitmaps: no escalan, se colocan. Uno pegado al margen
-     izquierdo y el otro al derecho, centrados en la franja. */
-  tft.pushImage(SX(10), (UI_HEAD_H-seederMarkHeight)/2,
-                seederMarkWidth, seederMarkHeight, seederMark);
-  tft.pushImage(UI_W - leafMarkWidth - SX(10), (UI_HEAD_H-leafMarkHeight)/2,
-                leafMarkWidth, leafMarkHeight, leafMark);
-  drawPower(UI_W - leafMarkWidth - SX(10) - SX(42), (UI_HEAD_H - 16) / 2, UI_BG, UI_ACCENT);
+/* Cabecera de marca táctica: fondo obsidiana, logotipo SEEDER futurista,
+   píldora naranja y estado de alimentación. */
+static void brandHead(void){
+  tft.fillRect(0, 0, UI_W, UI_HEAD_H, UI_BG);
+  // Píldora naranja táctica en el margen izquierdo
+  tft.fillRoundRect(UI_M, (UI_HEAD_H - SY(12))/2, SX(3), SY(12), 1, UI_ACCENT);
+
+  // Logotipo SEEDER en tipografía vectorial negrita moderna
+  tft.setFreeFont(FSSB9);
+  tft.setTextDatum(ML_DATUM);
+  tft.setTextColor(UI_TEXT, UI_BG);
+  tft.drawString("SEEDER", UI_M + SX(8), UI_HEAD_H / 2, GFXFF);
+
+  // Etiqueta táctica air-gapped
+  tiny("AIR-GAPPED", UI_M + SX(70), (UI_HEAD_H - UI_TINY_H)/2, UI_DIM, 'L', 1);
+
+  // Icono de carga / batería a la derecha
+  drawPower(UI_W - UI_M - SX(36), (UI_HEAD_H - 16) / 2, UI_TEXT, UI_BG);
+
+  // Separador horizontal sutil
+  tft.drawFastHLine(UI_M, UI_HEAD_H, UI_W - 2*UI_M, UI_TRACK);
+  tft.setTextDatum(TL_DATUM);
 }
 
-/* Raíl estrecho, sólo símbolos: arriba dos puntas opuestas para
-   desplazarse, abajo un check para confirmar. */
-static void thinRail(void){
-  tft.drawFastVLine(UI_MRAIL_X, UI_HEAD_H, UI_H-UI_HEAD_H, UI_TRACK);
-  caret(UI_MRAIL_CX, SY(62), SX(13), SY(-8), UI_DIM);
-  caret(UI_MRAIL_CX, SY(68), SX(13), SY( 8), UI_DIM);
-  for(int i=0; i<2; i++){                       //grosor 2, no hay drawWideLine
-    tft.drawLine(SX(219), SY(108)+i, SX(225), SY(114)+i, UI_ACCENT);
-    tft.drawLine(SX(225), SY(114)+i, SX(236), SY(101)+i, UI_ACCENT);
+/* Raíl estrecho lateral: alineado ergonómicamente con los dos botones físicos.
+   Arriba MOVE para conmutar, abajo OK con marca de verificación. */
+static void thinRail(int y1, int y2, int cardH){
+  tft.drawFastVLine(UI_MRAIL_X, 0, UI_H, UI_TRACK);
+
+  // Control superior: MOVE (alineado con la tarjeta 1)
+  const int topCY = y1 + cardH / 2;
+  caret(UI_MRAIL_CX, topCY - SY(10), SX(11), SY(-6), UI_DIM);
+  caret(UI_MRAIL_CX, topCY + SY(10), SX(11), SY( 6), UI_DIM);
+  tiny("MOVE", UI_MRAIL_CX, topCY - SY(3), UI_ACCENT, 'C', 1);
+
+  // Control inferior: OK (alineado con la tarjeta 2)
+  const int botCY = y2 + cardH / 2;
+  for(int i=0; i<2; i++){
+    tft.drawLine(UI_MRAIL_CX - SX(6), botCY - SY(4) + i, UI_MRAIL_CX - SX(1), botCY + SY(3) + i, UI_ACCENT);
+    tft.drawLine(UI_MRAIL_CX - SX(1), botCY + SY(3) + i, UI_MRAIL_CX + SX(7), botCY - SY(7) + i, UI_ACCENT);
+  }
+  tiny("OK", UI_MRAIL_CX, botCY + SY(7), UI_ACCENT, 'C', 1);
+}
+
+/* Geometría adaptativa para las tarjetas de menú flotantes */
+static void getMenuCardLayout(int &cardX, int &cardW, int &cardH, int &y1, int &y2){
+  cardX = SX(8);
+  cardW = UI_MRAIL_X - cardX - SX(8);
+  const int topY = UI_HEAD_H + SY(6);
+  const int botY = UI_H - SY(6);
+  const int gap  = SY(6);
+  cardH = (botY - topY - gap) / 2;
+  y1 = topY;
+  y2 = topY + cardH + gap;
+}
+
+/* Renderizado de tarjeta flotante con borde brillante y tipografía futurista */
+static void drawMenuCard(int x, int y, int w, int h, bool sel, const char *title, const char *sub, int mode, uint8_t valOrNum){
+  // mode: 0 = Dado, 1 = Moneda, 2 = Numeral palabras (12/24)
+  const uint16_t bgCol = sel ? UI_CARD_BG_SEL : UI_CARD_BG;
+  tft.fillRoundRect(x, y, w, h, 6, bgCol);
+
+  if(sel){
+    // Halo exterior de resplandor
+    tft.drawRoundRect(x - 1, y - 1, w + 2, h + 2, 7, UI_ACCENT_GLOW);
+    // Doble borde naranja brillante Bitcoin
+    tft.drawRoundRect(x,     y,     w,     h,     6, UI_ACCENT);
+    tft.drawRoundRect(x + 1, y + 1, w - 2, h - 2, 5, UI_ACCENT);
+    // Píldora vertical de selección anclada a la izquierda
+    const int pillH = h - SY(14);
+    tft.fillRoundRect(x + SX(4), y + SY(7), SX(4), pillH, 2, UI_ACCENT);
+  } else {
+    // Limpieza de cualquier resplandor exterior residual
+    tft.drawRoundRect(x - 1, y - 1, w + 2, h + 2, 7, UI_BG);
+    // Borde pizarra para estado inactivo
+    tft.drawRoundRect(x, y, w, h, 6, UI_CARD_BOR);
+  }
+
+  // Gráfico / Icono
+  const uint16_t iconCol = sel ? UI_ACCENT : UI_DIM;
+  const int iconSize = SY(26);
+  const int iconX = x + SX(16);
+  const int iconY = y + (h - iconSize) / 2;
+
+  if(mode == 0){
+    die(iconX, iconY, iconSize, valOrNum, iconCol);
+  } else if(mode == 1){
+    coin(iconX, iconY, iconSize, iconCol);
+  } else if(mode == 2){
+    char numBuf[4];
+    snprintf(numBuf, sizeof(numBuf), "%u", valOrNum);
+    tft.setFreeFont(FSSB12);
+    tft.setTextDatum(MC_DATUM);
+    tft.setTextColor(iconCol, bgCol);
+    tft.drawString(numBuf, iconX + iconSize/2, y + h/2, GFXFF);
+  }
+
+  // Título futurista con FreeSansBold 9pt
+  const int textX = iconX + iconSize + SX(12);
+  tft.setFreeFont(FSSB9);
+  tft.setTextDatum(TL_DATUM);
+  tft.setTextColor(sel ? UI_TEXT : UI_DIM, bgCol);
+  tft.drawString(title, textX, y + SY(7), GFXFF);
+
+  // Subtítulo con espaciado técnico
+  tiny(sub, textX, y + SY(26), sel ? UI_DIM : UI_TRACK, 'L', 1);
+  tft.setTextDatum(TL_DATUM);
+}
+
+/* Animación de deslizamiento fluido de la píldora de selección entre tarjetas */
+static void animateSelectionSlide(int cardX, int cardW, int cardH, int fromY, int toY){
+  const int yStart = fromY + SY(7);
+  const int yEnd   = toY + SY(7);
+  const int pillX  = cardX + SX(4);
+  const int pillW  = SX(4);
+  const int pillH  = cardH - SY(14);
+
+  // Apagar de inmediato el halo de la tarjeta anterior
+  tft.drawRoundRect(cardX - 1, fromY - 1, cardW + 2, cardH + 2, 7, UI_BG);
+  tft.drawRoundRect(cardX,     fromY,     cardW,     cardH,     6, UI_CARD_BOR);
+  tft.drawRoundRect(cardX + 1, fromY + 1, cardW - 2, cardH - 2, 5, UI_CARD_BG);
+
+  const int gapY1 = min(fromY, toY) + cardH;
+  const int gapY2 = max(fromY, toY);
+
+  const int STEPS = 6;
+  int lastPillY = yStart;
+  for(int s = 1; s <= STEPS; s++){
+    const float t = (float)s / STEPS;
+    const float ease = t * (2.0f - t); // Suavizado ease-out cuadrático
+    const int curPillY = yStart + (int)((yEnd - yStart) * ease + 0.5f);
+
+    // Borrado limpio del trazo anterior
+    if(curPillY > lastPillY){
+      for(int py = lastPillY; py < curPillY; py++){
+        const uint16_t c = (py >= gapY1 && py < gapY2) ? UI_BG : UI_CARD_BG;
+        tft.drawFastHLine(pillX, py, pillW, c);
+      }
+    } else if(curPillY < lastPillY){
+      for(int py = curPillY + pillH; py < lastPillY + pillH; py++){
+        const uint16_t c = (py >= gapY1 && py < gapY2) ? UI_BG : UI_CARD_BG;
+        tft.drawFastHLine(pillX, py, pillW, c);
+      }
+    }
+
+    tft.fillRoundRect(pillX, curPillY, pillW, pillH, 2, UI_ACCENT);
+    lastPillY = curPillY;
+    delay(16);
   }
 }
 
-/* Fila de opción: barra de acento a la izquierda cuando está elegida, y
-   debajo lo que cuesta esa opción. Admite una tercera el día que haga falta. */
-static void listRow(int y, bool sel, uint16_t col, const char *lab, const char *sub, int tx){
-  if(sel) tft.fillRect(SX(4), y, SX(3), SY(40), UI_ACCENT);
-  tiny(lab, tx, y+SY(4),  col, 'L', 1, UI_BIG_BODY);
-  tiny(sub, tx, y+SY(26), sel ? UI_DIM : UI_TRACK, 'L', 1);
+void menu(bool diceSelected, bool animate){
+  int cardX, cardW, cardH, y1, y2;
+  getMenuCardLayout(cardX, cardW, cardH, y1, y2);
+
+  if(animate){
+    const int fromY = diceSelected ? y2 : y1;
+    const int toY   = diceSelected ? y1 : y2;
+    animateSelectionSlide(cardX, cardW, cardH, fromY, toY);
+  } else {
+    tft.fillScreen(UI_BG);
+    brandHead();
+    thinRail(y1, y2, cardH);
+  }
+
+  drawMenuCard(cardX, y1, cardW, cardH, diceSelected, "DICE SEED", "50 OR 99 ROLLS", 0, 5);
+  drawMenuCard(cardX, y2, cardW, cardH, !diceSelected, "COIN SEED", "128 OR 256 FLIPS", 1, 0);
 }
 
-void menu(bool diceSelected){
-  tft.fillScreen(UI_BG);
-  greenHead();
-  thinRail();
-
-  const uint16_t dc = diceSelected ? UI_ACCENT : UI_DIM;
-  const uint16_t cc = diceSelected ? UI_DIM    : UI_ACCENT;
-
-  die(SX(14), SY(48), SY(32), 5, dc);
-  listRow(SY(44), diceSelected, dc, "DICE SEED", "50 OR 99 ROLLS", SX(58));
-
-  coin(SX(14), SY(92), SY(32), cc);
-  listRow(SY(88), !diceSelected, cc, "COIN SEED", "128 OR 256 FLIPS", SX(58));
-}
-
-void words(uint8_t nWords){
-  tft.fillScreen(UI_BG);
-  greenHead();
-  thinRail();
-
+void words(uint8_t nWords, bool animate){
+  int cardX, cardW, cardH, y1, y2;
+  getMenuCardLayout(cardX, cardW, cardH, y1, y2);
   const bool w12 = (nWords == 12);
-  const uint16_t c1 = w12 ? UI_ACCENT : UI_DIM;
-  const uint16_t c2 = w12 ? UI_DIM    : UI_ACCENT;
 
-  /* FMB18, no FMB24: a 28px por dígito el numeral pesaba demasiado en la
-     fila. Centrados en x=36, que es el centro de la columna del icono en la
-     pantalla anterior, para que las dos casen. */
-  tft.setFreeFont(FMB18);
-  tft.setTextDatum(BC_DATUM);
-  tft.setTextColor(c1); tft.drawString("12", SX(36), SY(74),  GFXFF);
-  tft.setTextColor(c2); tft.drawString("24", SX(36), SY(118), GFXFF);
-  tft.setTextDatum(TL_DATUM);
+  if(animate){
+    const int fromY = w12 ? y2 : y1;
+    const int toY   = w12 ? y1 : y2;
+    animateSelectionSlide(cardX, cardW, cardH, fromY, toY);
+  } else {
+    tft.fillScreen(UI_BG);
+    brandHead();
+    thinRail(y1, y2, cardH);
+  }
 
-  listRow(SY(44), w12,  c1, "WORDS", "128 BITS OF ENTROPY", SX(72));
-  listRow(SY(88), !w12, c2, "WORDS", "256 BITS OF ENTROPY", SX(72));
+  drawMenuCard(cardX, y1, cardW, cardH, w12,  "12 WORDS", "128 BITS OF ENTROPY", 2, 12);
+  drawMenuCard(cardX, y2, cardW, cardH, !w12, "24 WORDS", "256 BITS OF ENTROPY", 2, 24);
 }
 
 /*----------------- captura de moneda -----------------*/
@@ -452,7 +570,12 @@ void holdUpdate(float frac){
 
 void generating(void){
   tft.fillScreen(UI_BG);
-  tiny("GENERATING SEED", UI_W/2, UI_H/2 - SY(4), UI_ACCENT, 'C', 1);
+  tft.setFreeFont(FSSB9);
+  tft.setTextDatum(MC_DATUM);
+  tft.setTextColor(UI_ACCENT, UI_BG);
+  tft.drawString("GENERATING SEED...", UI_W/2, UI_H/2 - SY(8), GFXFF);
+  bar(UI_W/4, UI_H/2 + SY(8), UI_W/2, SY(4), 1.0f);
+  tft.setTextDatum(TL_DATUM);
 }
 
 /*----------------- pantallas de la semilla -----------------*/

@@ -52,8 +52,8 @@ void resetEntropy(void){
   myWallet.nBCoinEntropy = 0;
 }
 
-void drawInitMenu(void) { ui::menu(myWallet.entropySrc == diceEntropy); }
-void drawWordsMenu(void){ ui::words(myWallet.nWords); }
+void drawInitMenu(bool animate) { ui::menu(myWallet.entropySrc == diceEntropy, animate); }
+void drawWordsMenu(bool animate){ ui::words(myWallet.nWords, animate); }
 
 static void drawSeedPage(void){
   const uint8_t st = seedStep(), tot = seedSteps();
@@ -135,12 +135,12 @@ static void generateSeed(void){
 void doInitMenu(void){
   if(btnMove.click() == SingleClick){
     myWallet.entropySrc = (myWallet.entropySrc == coinEntropy) ? diceEntropy : coinEntropy;
-    drawInitMenu();
+    drawInitMenu(true);
   }
   if(btnSelect.click() == SingleClick){
     myWallet.nWords = 12;
     myWallet.State  = STATE_WORDS;
-    drawWordsMenu();
+    drawWordsMenu(false);
   }
 }
 
@@ -148,7 +148,7 @@ void doInitMenu(void){
 void doMenuWords(void){
   if(btnMove.click() == SingleClick){
     myWallet.nWords = (myWallet.nWords == 12) ? 24 : 12;
-    drawWordsMenu();
+    drawWordsMenu(true);
   }
   if(btnSelect.click() == SingleClick){
     resetEntropy();

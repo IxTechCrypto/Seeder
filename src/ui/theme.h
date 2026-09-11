@@ -12,16 +12,19 @@
  layouts en paralelo.
 **********************************/
 
-/*** Colores (RGB565) *************************************************
- Tres niveles de brillo, no dos. Sin el nivel apagado todo grita a la vez
- y nada guía la mirada: era el motivo de que la v1 se viera dura.        */
-#define UI_ACCENT     0x86F3   // verde SEEDER: lo que importa ahora
-#define UI_TEXT       0xD6BA   // texto principal
-#define UI_DIM        0x4A49   // texto secundario y pistas
-#define UI_TRACK      0x2945   // reglas y fondo de barras
-#define UI_BG         0x0000
-#define UI_QR_LIGHT   0xFFFF   // fondo y zona tranquila del QR
-#define UI_QR_DARK    0x0000   // los módulos, oscuros sobre claro como manda
+/*** Colores (RGB565) - Concept 1: Sovereign Tactical (Bitcoin Orange) *********/
+#define UI_ACCENT         0xFD00   // Naranja Bitcoin (#FF8000 / #F7931A eléctrico)
+#define UI_ACCENT_GLOW    0x9340   // Brillo cálido sutil para borde de tarjeta activa
+#define UI_CARD_BG        0x10C3   // Fondo oscuro pizarra para tarjetas inactivas
+#define UI_CARD_BG_SEL    0x1904   // Fondo oscuro sutilmente elevado para tarjeta activa
+#define UI_CARD_BOR       0x2965   // Borde pizarra para tarjetas inactivas
+#define UI_CARD_BOR_SEL   UI_ACCENT// Borde naranja brillante para tarjeta activa
+#define UI_TEXT           0xFFFF   // Blanco puro de alto contraste
+#define UI_DIM            0x8410   // Gris técnico (#848484) para subtítulos y pistas
+#define UI_TRACK          0x2124   // Reglas divisorias oscuras
+#define UI_BG             0x0000   // Negro obsidiana profundo
+#define UI_QR_LIGHT       0xFFFF   // Fondo y zona tranquila del QR
+#define UI_QR_DARK        0x0000   // Los módulos, oscuros sobre claro como manda
 
 /*** Métricas *********************************************************/
 #define UI_M          SX(10)     // margen izquierdo del contenido
@@ -40,7 +43,7 @@
 #define UI_MRAIL_X    SX(214)
 #define UI_MRAIL_CX   ((UI_MRAIL_X + UI_W) / 2)
 
-#define UI_HEAD_H     SY(36)     // franja verde del menú
+#define UI_HEAD_H     SY(26)     // Altura cabecera táctica del menú
 
 /*** Tipografía *******************************************************
  Las fuentes miden lo que miden en píxeles: NO se escalan con la placa.
