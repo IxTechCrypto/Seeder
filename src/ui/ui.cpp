@@ -352,26 +352,26 @@ static void drawMenuCard(int x, int y, int w, int h, bool sel, const char *title
     tft.drawRoundRect(x, y, w, h, 6, UI_CARD_BOR);
   }
 
-  // Posición del icono (34x34, perfectamente centrado con amplio margen interior)
+  // Posición del icono (36x36, dado ampliado a 32px y centrado óptimo)
   const int iconX = x + SX(14);
-  const int iconY = y + (h - 34) / 2;
+  const int iconY = y + (h - 36) / 2;
 
   if(mode == 0){ // Dado 3D isométrico
-    if(sel) tft.pushImage(iconX, iconY, 34, 34, icon_dice_orange);
-    else    tft.pushImage(iconX, iconY, 34, 34, icon_dice_dim);
+    if(sel) tft.pushImage(iconX, iconY, 36, 36, icon_dice_orange);
+    else    tft.pushImage(iconX, iconY, 36, 36, icon_dice_dim);
   } else if(mode == 1){ // Moneda Bitcoin ₿
-    if(sel) tft.pushImage(iconX, iconY, 34, 34, icon_coin_orange);
-    else    tft.pushImage(iconX, iconY, 34, 34, icon_coin_silver);
+    if(sel) tft.pushImage(iconX, iconY, 36, 36, icon_coin_orange);
+    else    tft.pushImage(iconX, iconY, 36, 36, icon_coin_silver);
   } else if(mode == 2){ // 12 Palabras
-    if(sel) tft.pushImage(iconX, iconY, 34, 34, icon_words12_orange);
-    else    tft.pushImage(iconX, iconY, 34, 34, icon_words12_dim);
+    if(sel) tft.pushImage(iconX, iconY, 36, 36, icon_words12_orange);
+    else    tft.pushImage(iconX, iconY, 36, 36, icon_words12_dim);
   } else if(mode == 3){ // 24 Palabras
-    if(sel) tft.pushImage(iconX, iconY, 34, 34, icon_words24_orange);
-    else    tft.pushImage(iconX, iconY, 34, 34, icon_words24_dim);
+    if(sel) tft.pushImage(iconX, iconY, 36, 36, icon_words24_orange);
+    else    tft.pushImage(iconX, iconY, 36, 36, icon_words24_dim);
   }
 
   // Título y subtítulo centrados verticalmente dentro de la tarjeta
-  const int textX = iconX + 34 + SX(12);
+  const int textX = iconX + 36 + SX(12);
   const int textY = y + (h - SY(30)) / 2;
 
   tft.setFreeFont(FSSB9);
@@ -440,19 +440,19 @@ void menu(bool diceSelected, bool animate){
     // Giro 360° inmediato en el icono de la opción recién seleccionada
     const int iconX = cardX + SX(14);
     if(diceSelected){
-      const int iconY = y1 + (cardH - 34) / 2;
+      const int iconY = y1 + (cardH - 36) / 2;
       for(int f = 0; f < 12; f++){
-        tft.pushImage(iconX, iconY, 34, 34, dice_spin_frames[f]);
+        tft.pushImage(iconX, iconY, 36, 36, dice_spin_frames[f]);
         delay(16);
       }
-      tft.pushImage(iconX, iconY, 34, 34, icon_dice_orange);
+      tft.pushImage(iconX, iconY, 36, 36, icon_dice_orange);
     } else {
-      const int iconY = y2 + (cardH - 34) / 2;
+      const int iconY = y2 + (cardH - 36) / 2;
       for(int f = 0; f < 12; f++){
-        tft.pushImage(iconX, iconY, 34, 34, coin_spin_frames[f]);
+        tft.pushImage(iconX, iconY, 36, 36, coin_spin_frames[f]);
         delay(16);
       }
-      tft.pushImage(iconX, iconY, 34, 34, icon_coin_orange);
+      tft.pushImage(iconX, iconY, 36, 36, icon_coin_orange);
     }
   } else {
     tft.fillScreen(UI_BG);
