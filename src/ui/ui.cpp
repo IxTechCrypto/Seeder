@@ -243,7 +243,7 @@ static void head(const char *title, uint8_t step, uint8_t total){
 void splash(void){
   tft.fillScreen(UI_BG);
   tft.pushImage((UI_W - seeder_splash_logo_w)/2, (UI_H - seeder_splash_logo_h)/2 - SY(8),
-                seeder_splash_logo_w, seeder_splash_logo_h, seeder_splash_logo);
+                seeder_splash_logo_w, seeder_splash_logo_h, seeder_splash_logo, 0x0000);
   tiny("V" SEEDER_VERSION "  " SEEDER_COMMIT, UI_W/2, UI_H - SY(15), UI_DIM, 'C', 1);
   delay(1800);
 
@@ -282,8 +282,8 @@ void splash(void){
    y estado de alimentación USB / Batería a la derecha. */
 static void brandHead(void){
   tft.fillRect(0, 0, UI_W, UI_HEAD_H, UI_BG);
-  // Logotipo SEEDER extraído directamente del concepto Sovereign Tactical
-  tft.pushImage(SX(10), (UI_HEAD_H - icon_seeder_logo_h) / 2, icon_seeder_logo_w, icon_seeder_logo_h, icon_seeder_logo);
+  // Logotipo SEEDER sin caja de fondo (transparente a 0x0000)
+  tft.pushImage(SX(10), (UI_HEAD_H - icon_seeder_logo_h) / 2, icon_seeder_logo_w, icon_seeder_logo_h, icon_seeder_logo, 0x0000);
 
   // Icono de carga / batería a la derecha
   drawPower(UI_W - UI_M - SX(36), (UI_HEAD_H - 16) / 2, UI_TEXT, UI_BG);
@@ -357,17 +357,17 @@ static void drawMenuCard(int x, int y, int w, int h, bool sel, const char *title
   const int iconY = y + (h - 36) / 2;
 
   if(mode == 0){ // Dado 3D isométrico
-    if(sel) tft.pushImage(iconX, iconY, 36, 36, icon_dice_orange);
-    else    tft.pushImage(iconX, iconY, 36, 36, icon_dice_dim);
+    if(sel) tft.pushImage(iconX, iconY, 36, 36, icon_dice_orange, 0x0000);
+    else    tft.pushImage(iconX, iconY, 36, 36, icon_dice_dim, 0x0000);
   } else if(mode == 1){ // Moneda Bitcoin ₿
-    if(sel) tft.pushImage(iconX, iconY, 36, 36, icon_coin_orange);
-    else    tft.pushImage(iconX, iconY, 36, 36, icon_coin_silver);
+    if(sel) tft.pushImage(iconX, iconY, 36, 36, icon_coin_orange, 0x0000);
+    else    tft.pushImage(iconX, iconY, 36, 36, icon_coin_silver, 0x0000);
   } else if(mode == 2){ // 12 Palabras
-    if(sel) tft.pushImage(iconX, iconY, 36, 36, icon_words12_orange);
-    else    tft.pushImage(iconX, iconY, 36, 36, icon_words12_dim);
+    if(sel) tft.pushImage(iconX, iconY, 36, 36, icon_words12_orange, 0x0000);
+    else    tft.pushImage(iconX, iconY, 36, 36, icon_words12_dim, 0x0000);
   } else if(mode == 3){ // 24 Palabras
-    if(sel) tft.pushImage(iconX, iconY, 36, 36, icon_words24_orange);
-    else    tft.pushImage(iconX, iconY, 36, 36, icon_words24_dim);
+    if(sel) tft.pushImage(iconX, iconY, 36, 36, icon_words24_orange, 0x0000);
+    else    tft.pushImage(iconX, iconY, 36, 36, icon_words24_dim, 0x0000);
   }
 
   // Título y subtítulo centrados verticalmente dentro de la tarjeta
@@ -442,17 +442,21 @@ void menu(bool diceSelected, bool animate){
     if(diceSelected){
       const int iconY = y1 + (cardH - 36) / 2;
       for(int f = 0; f < 12; f++){
-        tft.pushImage(iconX, iconY, 36, 36, dice_spin_frames[f]);
+        tft.fillRect(iconX, iconY, 36, 36, UI_CARD_BG_SEL);
+        tft.pushImage(iconX, iconY, 36, 36, dice_spin_frames[f], 0x0000);
         delay(16);
       }
-      tft.pushImage(iconX, iconY, 36, 36, icon_dice_orange);
+      tft.fillRect(iconX, iconY, 36, 36, UI_CARD_BG_SEL);
+      tft.pushImage(iconX, iconY, 36, 36, icon_dice_orange, 0x0000);
     } else {
       const int iconY = y2 + (cardH - 36) / 2;
       for(int f = 0; f < 12; f++){
-        tft.pushImage(iconX, iconY, 36, 36, coin_spin_frames[f]);
+        tft.fillRect(iconX, iconY, 36, 36, UI_CARD_BG_SEL);
+        tft.pushImage(iconX, iconY, 36, 36, coin_spin_frames[f], 0x0000);
         delay(16);
       }
-      tft.pushImage(iconX, iconY, 36, 36, icon_coin_orange);
+      tft.fillRect(iconX, iconY, 36, 36, UI_CARD_BG_SEL);
+      tft.pushImage(iconX, iconY, 36, 36, icon_coin_orange, 0x0000);
     }
   } else {
     tft.fillScreen(UI_BG);
