@@ -242,9 +242,10 @@ static void head(const char *title, uint8_t step, uint8_t total){
 
 void splash(void){
   tft.fillScreen(UI_BG);
-  tft.pushImage((UI_W-logoWidth)/2, (UI_H-logoHeight)/2 - SY(8), logoWidth, logoHeight, seeder_logo);
+  tft.pushImage((UI_W - seeder_splash_logo_w)/2, (UI_H - seeder_splash_logo_h)/2 - SY(8),
+                seeder_splash_logo_w, seeder_splash_logo_h, seeder_splash_logo);
   tiny("V" SEEDER_VERSION "  " SEEDER_COMMIT, UI_W/2, UI_H - SY(15), UI_DIM, 'C', 1);
-  delay(2000);
+  delay(1800);
 
   /* Segunda pantalla: los creditos. Los dos logotipos y la linea de uBitcoin
      son bitmaps y no escalan, asi que van como un grupo -uno debajo del otro
@@ -351,26 +352,26 @@ static void drawMenuCard(int x, int y, int w, int h, bool sel, const char *title
     tft.drawRoundRect(x, y, w, h, 6, UI_CARD_BOR);
   }
 
-  // Posición del icono
+  // Posición del icono (38x38, tamaño reducido al 95% para márgenes óptimos)
   const int iconX = x + SX(14);
-  const int iconY = y + (h - 40) / 2;
+  const int iconY = y + (h - 38) / 2;
 
   if(mode == 0){ // Dado 3D isométrico
-    if(sel) tft.pushImage(iconX, iconY, icon_dice_orange_w, icon_dice_orange_h, icon_dice_orange);
-    else    tft.pushImage(iconX, iconY, icon_dice_dim_w,    icon_dice_dim_h,    icon_dice_dim);
+    if(sel) tft.pushImage(iconX, iconY, 38, 38, icon_dice_orange);
+    else    tft.pushImage(iconX, iconY, 38, 38, icon_dice_dim);
   } else if(mode == 1){ // Moneda Bitcoin ₿
-    if(sel) tft.pushImage(iconX, iconY, icon_coin_orange_w, icon_coin_orange_h, icon_coin_orange);
-    else    tft.pushImage(iconX, iconY, icon_coin_silver_w, icon_coin_silver_h, icon_coin_silver);
+    if(sel) tft.pushImage(iconX, iconY, 38, 38, icon_coin_orange);
+    else    tft.pushImage(iconX, iconY, 38, 38, icon_coin_silver);
   } else if(mode == 2){ // 12 Palabras
-    if(sel) tft.pushImage(iconX, iconY, icon_words12_orange_w, icon_words12_orange_h, icon_words12_orange);
-    else    tft.pushImage(iconX, iconY, icon_words12_dim_w,    icon_words12_dim_h,    icon_words12_dim);
+    if(sel) tft.pushImage(iconX, iconY, 38, 38, icon_words12_orange);
+    else    tft.pushImage(iconX, iconY, 38, 38, icon_words12_dim);
   } else if(mode == 3){ // 24 Palabras
-    if(sel) tft.pushImage(iconX, iconY, icon_words24_orange_w, icon_words24_orange_h, icon_words24_orange);
-    else    tft.pushImage(iconX, iconY, icon_words24_dim_w,    icon_words24_dim_h,    icon_words24_dim);
+    if(sel) tft.pushImage(iconX, iconY, 38, 38, icon_words24_orange);
+    else    tft.pushImage(iconX, iconY, 38, 38, icon_words24_dim);
   }
 
   // Título con FreeSansBold 9pt
-  const int textX = iconX + 40 + SX(12);
+  const int textX = iconX + 38 + SX(12);
   tft.setFreeFont(FSSB9);
   tft.setTextDatum(TL_DATUM);
   tft.setTextColor(sel ? UI_TEXT : 0xC618, bgCol);
@@ -382,6 +383,55 @@ static void drawMenuCard(int x, int y, int w, int h, bool sel, const char *title
   tft.setTextColor(sel ? 0x9CD3 : 0x6B4D, bgCol);
   tft.drawString(sub, textX, y + SY(32), GFXFF);
   tft.setTextDatum(TL_DATUM);
+}
+
+/* Animación de giro 3D para la selección del dado */
+void animateDiceSelection(void){
+  int cardX, cardW, cardH, y1, y2;
+  getMenuCardLayout(cardX, cardW, cardH, y1, y2);
+  const int iconX = cardX + SX(14);
+  const int iconY = y1 + (cardH - 38) / 2;
+
+  // Destello en el borde de la tarjeta seleccionada
+  tft.drawRoundRect(cardX, y1, cardW, cardH, 6, UI_ACCENT);
+
+  // Giro isométrico 3D de 2 vueltas
+  for(int loop = 0; loop < 2; loop++){
+    for(int f = 0; f < 6; f++){
+      tft.pushImage(iconX, iconY, 38, 38, dice_spin_frames[f]);
+      delay(24);
+    }
+  }
+  tft.pushImage(iconX, iconY, 38, 38, icon_dice_orange);
+  delay(60);
+}
+
+/* Animación de volteo 180° en perspectiva para la selección de la moneda */
+void animateCoinSelection(void){
+  int cardX, cardW, cardH, y1, y2;
+  getMenuCardLayout(cardX, cardW, cardH, y1, y2);
+  const int iconX = cardX + SX(14);
+  const int iconY = y2 + (cardH - 38) / 2;
+
+  // Destello en el borde de la tarjeta seleccionada
+  tft.drawRoundRect(cardX, y2, cardW, cardH, 6, UI_ACCENT);
+
+  // Giro de 180 grados con rotación en perspectiva horizontal
+  for(int f = 0; f < 7; f++){
+    tft.pushImage(iconX, iconY, 38, 38, coin_flip_frames[f]);
+    delay(38);
+  }
+  delay(100);
+}
+
+/* Destello táctico de selección en el menú de palabras */
+void animateWordsSelection(bool is12){
+  int cardX, cardW, cardH, y1, y2;
+  getMenuCardLayout(cardX, cardW, cardH, y1, y2);
+  const int y = is12 ? y1 : y2;
+  tft.drawRoundRect(cardX, y, cardW, cardH, 6, UI_ACCENT);
+  tft.drawRoundRect(cardX + 1, y + 1, cardW - 2, cardH - 2, 5, UI_ACCENT);
+  delay(120);
 }
 
 /* Animación de deslizamiento fluido de la píldora de selección entre tarjetas */
@@ -567,12 +617,46 @@ void holdUpdate(float frac){
 
 void generating(void){
   tft.fillScreen(UI_BG);
+
+  // Etiqueta superior táctica
+  tiny("CRYPTOGRAPHIC DERIVATION", UI_W/2, SY(26), UI_DIM, 'C', 1);
+
+  // Título principal en negrita
   tft.setFreeFont(FSSB9);
   tft.setTextDatum(MC_DATUM);
   tft.setTextColor(UI_ACCENT, UI_BG);
-  tft.drawString("GENERATING SEED...", UI_W/2, UI_H/2 - SY(8), GFXFF);
-  bar(UI_W/4, UI_H/2 + SY(8), UI_W/2, SY(4), 1.0f);
+  tft.drawString("GENERATING SEED", UI_W/2, UI_H/2 - SY(14), GFXFF);
   tft.setTextDatum(TL_DATUM);
+
+  // Barra de progreso táctica
+  const int barX = UI_W / 6;
+  const int barW = (UI_W * 2) / 3;
+  const int barY = UI_H / 2 + SY(6);
+  const int barH = SY(6);
+
+  tft.fillRoundRect(barX, barY, barW, barH, 3, UI_TRACK);
+  tft.drawRoundRect(barX - 1, barY - 1, barW + 2, barH + 2, 4, UI_CARD_BOR);
+
+  const char* stages[4] = {
+    "HASHING ENTROPY POOL...",
+    "CALCULATING CHECKSUM...",
+    "PBKDF2 HMAC-SHA512...",
+    "FINALIZING BIP39 SEED..."
+  };
+
+  const int TOTAL_STEPS = 12;
+  for(int step = 1; step <= TOTAL_STEPS; step++){
+    const float frac = (float)step / (float)TOTAL_STEPS;
+    const int fillW = (int)(barW * frac + 0.5f);
+    tft.fillRoundRect(barX, barY, fillW, barH, 3, UI_ACCENT);
+
+    const int stageIdx = min(3, (step - 1) / 3);
+    tft.fillRect(0, barY + barH + SY(8), UI_W, SY(16), UI_BG);
+    tiny(stages[stageIdx], UI_W/2, barY + barH + SY(10), 0x9CD3, 'C', 1);
+
+    delay(45);
+  }
+  delay(80);
 }
 
 /*----------------- pantallas de la semilla -----------------*/

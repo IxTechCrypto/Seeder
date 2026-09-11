@@ -138,6 +138,11 @@ void doInitMenu(void){
     drawInitMenu(true);
   }
   if(btnSelect.click() == SingleClick){
+    if(myWallet.entropySrc == diceEntropy){
+      ui::animateDiceSelection();
+    }else{
+      ui::animateCoinSelection();
+    }
     myWallet.nWords = 12;
     myWallet.State  = STATE_WORDS;
     drawWordsMenu(false);
@@ -151,6 +156,7 @@ void doMenuWords(void){
     drawWordsMenu(true);
   }
   if(btnSelect.click() == SingleClick){
+    ui::animateWordsSelection(myWallet.nWords == 12);
     resetEntropy();
     if(myWallet.entropySrc == coinEntropy){
       myWallet.State = STATE_COINSEED;

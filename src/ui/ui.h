@@ -21,6 +21,9 @@ void drawPower(int x, int y, uint16_t fgCol, uint16_t bgCol);
 void splash(void);
 void menu(bool diceSelected, bool animate = false);
 void words(uint8_t nWords, bool animate = false);
+void animateDiceSelection(void);
+void animateCoinSelection(void);
+void animateWordsSelection(bool is12);
 
 void coinEnter(uint16_t totalBits);
 void coinUpdate(uint16_t done, uint16_t totalBits, const uint8_t *entropy);
