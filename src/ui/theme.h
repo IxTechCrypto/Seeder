@@ -17,8 +17,8 @@
 #define UI_ACCENT_GLOW    0x9340   // Brillo cálido sutil para borde de tarjeta activa
 #define UI_CARD_BG        0x10C3   // Fondo oscuro pizarra para tarjetas inactivas
 #define UI_CARD_BG_SEL    0x1904   // Fondo oscuro sutilmente elevado para tarjeta activa
-#define UI_CARD_BOR       0x2965   // Borde pizarra para tarjetas inactivas
-#define UI_CARD_BOR_SEL   UI_ACCENT// Borde naranja brillante para tarjeta activa
+#define UI_CARD_BOR       0x2125   // Borde pizarra para tarjetas inactivas
+#define UI_CARD_BOR_SEL   0x3A20   // Borde sutil tarjeta activa
 #define UI_TEXT           0xFFFF   // Blanco puro de alto contraste
 #define UI_DIM            0x8410   // Gris técnico (#848484) para subtítulos y pistas
 #define UI_TRACK          0x2124   // Reglas divisorias oscuras

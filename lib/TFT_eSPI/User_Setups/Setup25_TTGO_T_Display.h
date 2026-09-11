@@ -10,6 +10,7 @@
 #define TFT_HEIGHT 240
 
 #define CGRAM_OFFSET      // Library will add offsets required
+#define TFT_RGB_ORDER 1   // 1 = Red-Green-Blue (RGB), 0 = Blue-Green-Red (BGR)
 
 //#define TFT_MISO -1
 
