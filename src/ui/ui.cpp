@@ -8,6 +8,7 @@
 #include "../qrcoded.h"
 #include "brand.h"
 #include "tactical_icons.h"
+#include "utility/trezor/memzero.h"
 #if !defined(SEEDER_BOARD_TDISPLAY_S3)
   #include "../Lib/images_splash85.h"
 #endif
@@ -59,7 +60,7 @@ static void tiny(const String &s, int x, int y, uint16_t col, char datum='L', in
 }
 
 /* Cuerpo grande: lo que el usuario tiene que copiar a mano */
-static void bigLine(const String &s, int y, uint16_t col){
+static void bigLine(const char *s, int y, uint16_t col){
   tiny(s, UI_M, y, col, 'L', 0, UI_BIG_BODY);
 }
 
@@ -635,7 +636,7 @@ void generating(void){
 }
 
 /*----------------- pantallas de la semilla -----------------*/
-void mnemonic(const String &mn, uint8_t nWords, uint8_t from, uint8_t step, uint8_t total){
+void mnemonic(const char *mn, uint8_t nWords, uint8_t from, uint8_t step, uint8_t total){
   head(nWords == 12 ? "MNEMONIC WORDS" : (from ? "MNEMONIC 13-24" : "MNEMONIC 1-12"), step, total);
 
   /* Rejilla fija de 6 filas x 2 columnas. En línea corrida, doce palabras
@@ -643,63 +644,106 @@ void mnemonic(const String &mn, uint8_t nWords, uint8_t from, uint8_t step, uint
      caben siempre, sin depender de lo que midan. El número delante evita
      tener que contarlas al copiarlas. */
   const int COL[2] = { SX(6), SX(122) };
-  int idx = 0, shown = 0, start = 0;
-  while(start < (int)mn.length() && shown < 12){
-    const int sp = mn.indexOf(' ', start);
-    const String w = (sp < 0) ? mn.substring(start) : mn.substring(start, sp);
-    start = (sp < 0) ? mn.length() : sp + 1;
-    if(idx++ < from) continue;
+  int idx = 0, shown = 0;
+  const char *p = mn;
+  char wordBuf[16];
+
+  while(*p && shown < 12){
+    while(*p == ' ') p++;
+    if(!*p) break;
+    const char *end = p;
+    while(*end && *end != ' ') end++;
+    int wlen = end - p;
+    if(idx++ < from){
+      p = end;
+      continue;
+    }
+    if(wlen >= (int)sizeof(wordBuf)) wlen = sizeof(wordBuf) - 1;
+    memcpy(wordBuf, p, wlen);
+    wordBuf[wlen] = '\0';
 
     const int x = COL[shown / 6], y = SY(30) + (shown % 6) * SY(17);
     char num[4]; snprintf(num, sizeof(num), "%d", from + shown + 1);
-    tiny(num, x + SX(14), y + SY(4), UI_DIM,  'R', 0);
-    tiny(w,   x + SX(18), y,         UI_TEXT, 'L', 0, UI_BIG_BODY);
+    tiny(num,     x + SX(14), y + SY(4), UI_DIM,  'R', 0);
+    tiny(wordBuf, x + SX(18), y,         UI_TEXT, 'L', 0, UI_BIG_BODY);
     shown++;
+    p = end;
   }
+  memzero(wordBuf, sizeof(wordBuf));
 }
 
-void seedAddress(const String &addr, uint8_t step, uint8_t total){
+void seedAddress(const char *addr, uint8_t step, uint8_t total){
   head("FIRST ADDRESS", step, total);
   bodyLine("m/84'/0'/0'/0/0", SY(30), UI_ACCENT);
   int y = SY(48);
-  for(int i=0; i<(int)addr.length(); i += UI_BIG_CPL){
-    bigLine(addr.substring(i, min((int)addr.length(), i + UI_BIG_CPL)), y, UI_TEXT);
+  int len = strlen(addr);
+  char chunk[UI_BIG_CPL + 1];
+  for(int i=0; i<len; i += UI_BIG_CPL){
+    int clen = min(len - i, UI_BIG_CPL);
+    memcpy(chunk, addr + i, clen);
+    chunk[clen] = '\0';
+    bigLine(chunk, y, UI_TEXT);
     y += UI_BIG_LH;
   }
+  memzero(chunk, sizeof(chunk));
 }
 
-void seedZpub(const String &zpub, uint8_t step, uint8_t total){
+void seedZpub(const char *zpub, uint8_t step, uint8_t total){
   head("ACCOUNT ZPUB", step, total);
 
   /* Un zpub son 111 caracteres de base58: no se copia a mano, se escanea
      para montar el monedero de sólo lectura. Al lado, principio y final
      para poder identificarlo de un vistazo. */
-  tiny(zpub.substring(0, 8),                    UI_M, SY(32), UI_TEXT, 'L', 0, UI_BIG_BODY);
-  tiny("..." + zpub.substring(zpub.length()-5), UI_M, SY(54), UI_TEXT, 'L', 0, UI_BIG_BODY);
+  char prefix[9];
+  size_t len = strlen(zpub);
+  if(len >= 8){
+    memcpy(prefix, zpub, 8);
+    prefix[8] = '\0';
+  }else{
+    snprintf(prefix, sizeof(prefix), "%s", zpub);
+  }
+  char suffix[10];
+  if(len >= 5){
+    snprintf(suffix, sizeof(suffix), "...%s", zpub + len - 5);
+  }else{
+    suffix[0] = '\0';
+  }
+  tiny(prefix, UI_M, SY(32), UI_TEXT, 'L', 0, UI_BIG_BODY);
+  tiny(suffix, UI_M, SY(54), UI_TEXT, 'L', 0, UI_BIG_BODY);
   tiny("SCAN TO IMPORT",                        UI_M, SY(84), UI_DIM,  'L', 1);
   tiny("WATCH-ONLY",                            UI_M, SY(96), UI_DIM,  'L', 1);
 
   const int version = 6, px = 2;
   QRCode qr;
   uint8_t buf[qrcode_getBufferSize(version)];
-  if(qrcode_initText(&qr, buf, version, 0, zpub.c_str()) < 0) return;
-  /* Centrado en el hueco que queda bajo la cabecera, no pegado a ella */
-  const int x0 = UI_W - qr.size*px - SX(8);
-  const int y0 = SY(22) + (UI_H - SY(22) - qr.size*px) / 2;
-  for(uint8_t y=0; y<qr.size; y++)
-    for(uint8_t x=0; x<qr.size; x++)
-      tft.fillRect(x0 + x*px, y0 + y*px, px, px,
-                   qrcode_getModule(&qr, x, y) ? UI_QR_LIGHT : UI_BG);
+  if(qrcode_initText(&qr, buf, version, 0, zpub) >= 0){
+    /* Centrado en el hueco que queda bajo la cabecera, no pegado a ella */
+    const int x0 = UI_W - qr.size*px - SX(8);
+    const int y0 = SY(22) + (UI_H - SY(22) - qr.size*px) / 2;
+    for(uint8_t y=0; y<qr.size; y++)
+      for(uint8_t x=0; x<qr.size; x++)
+        tft.fillRect(x0 + x*px, y0 + y*px, px, px,
+                     qrcode_getModule(&qr, x, y) ? UI_QR_LIGHT : UI_BG);
+  }
+  memzero(buf, sizeof(buf));
+  memzero(&qr, sizeof(qr));
 }
 
-void seedEntropy(const String &hex, uint8_t step, uint8_t total){
+void seedEntropy(const char *hex, uint8_t step, uint8_t total){
   head("ENTROPY (HEX)", step, total);
   /* A tamaño 1 y todo seguido no había quien lo leyera. Ocho bytes por fila,
      a doble tamaño y alternando el color: se puede cantar en voz alta. */
-  const int bytes = hex.length() / 2;
-  for(int i=0; i<bytes; i++)
-    tiny(hex.substring(i*2, i*2+2), SX(8) + (i % 8) * SX(29), SY(32) + (i / 8) * SY(26),
+  const int hexLen = strlen(hex);
+  const int bytes = hexLen / 2;
+  char byteBuf[3];
+  byteBuf[2] = '\0';
+  for(int i=0; i<bytes; i++){
+    byteBuf[0] = hex[i*2];
+    byteBuf[1] = hex[i*2 + 1];
+    tiny(byteBuf, SX(8) + (i % 8) * SX(29), SY(32) + (i / 8) * SY(26),
          (i % 2) ? UI_TEXT : UI_ACCENT, 'L', 0, UI_BIG_BODY);
+  }
+  memzero(byteBuf, sizeof(byteBuf));
   if(bytes <= 16) tiny("CHECK IT OFFLINE", UI_M, SY(98), UI_DIM, 'L', 1);
 }
 
@@ -715,46 +759,49 @@ static uint8_t qrVersionFor(size_t len){
   return 11;                  // 61, el techo de siempre
 }
 
-void seedQr(const String &data){
-  const uint8_t version = qrVersionFor(data.length());
+void seedQr(const char *data){
+  const size_t len = strlen(data);
+  const uint8_t version = qrVersionFor(len);
   QRCode qrcode;
   uint8_t buf[qrcode_getBufferSize(11)];        // dimensionado al peor caso
-  if(qrcode_initText(&qrcode, buf, version, 0, data.c_str()) < 0) return;
+  if(qrcode_initText(&qrcode, buf, version, 0, data) >= 0){
+    /* El módulo manda para escanear, pero la zona tranquila hace falta o no
+       hay código que valga: se coge el mayor píxel por módulo que deje al
+       menos 2 módulos de margen claro, y luego se ensancha el margen con lo
+       que sobre, hasta los 4 que pide la norma.
 
-  /* El módulo manda para escanear, pero la zona tranquila hace falta o no
-     hay código que valga: se coge el mayor píxel por módulo que deje al
-     menos 2 módulos de margen claro, y luego se ensancha el margen con lo
-     que sobre, hasta los 4 que pide la norma.
+       Medido contra un decodificador de verdad, con y sin desenfoque: en la
+       T-Display salen 3px con 2 módulos para 12 palabras y 2px con 4 para 24;
+       en la S3, 3px y 4 módulos en los dos casos. */
+    const int QUIET_MIN = 2, QUIET_MAX = 4;
+    int px = 1;
+    while((qrcode.size + 2*QUIET_MIN) * (px+1) <= UI_H && px < 6) px++;
+    int quiet = (UI_H - qrcode.size*px) / (2*px);
+    if(quiet > QUIET_MAX) quiet = QUIET_MAX;
 
-     Medido contra un decodificador de verdad, con y sin desenfoque: en la
-     T-Display salen 3px con 2 módulos para 12 palabras y 2px con 4 para 24;
-     en la S3, 3px y 4 módulos en los dos casos. */
-  const int QUIET_MIN = 2, QUIET_MAX = 4;
-  int px = 1;
-  while((qrcode.size + 2*QUIET_MIN) * (px+1) <= UI_H && px < 6) px++;
-  int quiet = (UI_H - qrcode.size*px) / (2*px);
-  if(quiet > QUIET_MAX) quiet = QUIET_MAX;
+    tft.fillScreen(UI_BG);
+    tiny("EXPORT", UI_M, SY(10), UI_ACCENT, 'L', 1);
+    tiny("SCAN WITH AN",  UI_M, SY(34), UI_DIM, 'L', 0);
+    tiny("OFFLINE WALLET",UI_M, SY(44), UI_DIM, 'L', 0);
+    tiny("NEVER A PHONE", UI_M, SY(62), UI_ACCENT, 'L', 0);
 
-  tft.fillScreen(UI_BG);
-  tiny("EXPORT", UI_M, SY(10), UI_ACCENT, 'L', 1);
-  tiny("SCAN WITH AN",  UI_M, SY(34), UI_DIM, 'L', 0);
-  tiny("OFFLINE WALLET",UI_M, SY(44), UI_DIM, 'L', 0);
-  tiny("NEVER A PHONE", UI_M, SY(62), UI_ACCENT, 'L', 0);
+    /* Oscuro sobre claro, que es como se define un QR. Estaba al revés: los
+       módulos oscuros se pintaban en blanco y el fondo negro hacía de zona
+       tranquila, así que salía un código invertido. Muchos lectores de móvil
+       no leen un QR invertido, y comprobado con un decodificador: el de antes
+       no se leía ni sin desenfoque, y éste sí. */
+    const int qw = qrcode.size * px, b = quiet * px;
+    const int qx = UI_W - qw - b - SX(2);
+    const int qy = (UI_H - qw) / 2;
 
-  /* Oscuro sobre claro, que es como se define un QR. Estaba al revés: los
-     módulos oscuros se pintaban en blanco y el fondo negro hacía de zona
-     tranquila, así que salía un código invertido. Muchos lectores de móvil
-     no leen un QR invertido, y comprobado con un decodificador: el de antes
-     no se leía ni sin desenfoque, y éste sí. */
-  const int qw = qrcode.size * px, b = quiet * px;
-  const int qx = UI_W - qw - b - SX(2);
-  const int qy = (UI_H - qw) / 2;
-
-  tft.fillRect(qx - b, qy - b, qw + 2*b, qw + 2*b, UI_QR_LIGHT);
-  for(uint8_t y=0; y<qrcode.size; y++)
-    for(uint8_t x=0; x<qrcode.size; x++)
-      if(qrcode_getModule(&qrcode, x, y))
-        tft.fillRect(qx + x*px, qy + y*px, px, px, UI_QR_DARK);
+    tft.fillRect(qx - b, qy - b, qw + 2*b, qw + 2*b, UI_QR_LIGHT);
+    for(uint8_t y=0; y<qrcode.size; y++)
+      for(uint8_t x=0; x<qrcode.size; x++)
+        if(qrcode_getModule(&qrcode, x, y))
+          tft.fillRect(qx + x*px, qy + y*px, px, px, UI_QR_DARK);
+  }
+  memzero(buf, sizeof(buf));
+  memzero(&qrcode, sizeof(qrcode));
 }
 
 void seedExit(void){

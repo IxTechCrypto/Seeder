@@ -20,25 +20,25 @@ void createSeed(int nWords, uint8_t * entropy){
   if (len % 4 || len < 16 || len > 32) {
     return;
   }
-  String mn = mnemonicFromEntropy(entropy, len);
+  const char * mn = mnemonicFromEntropy(entropy, len);
+  if (!mn) return;
+  strncpy(myWallet.mnemonic, mn, sizeof(myWallet.mnemonic) - 1);
+  myWallet.mnemonic[sizeof(myWallet.mnemonic) - 1] = '\0';
 
   //Kept so the user can check the words against the entropy they produced
-  myWallet.entropyHex = toHex(entropy, len);
-  myWallet.entropyHex.toUpperCase();
+  toHex(entropy, len, myWallet.entropyHex, sizeof(myWallet.entropyHex));
+  for(char *p = myWallet.entropyHex; *p; p++){
+    if(*p >= 'a' && *p <= 'z') *p -= 32;
+  }
 
   // Extract account zpub and the FIRST RECEIVE address
-  HDPrivateKey hd(mn, "");
+  HDPrivateKey hd(myWallet.mnemonic, strlen(myWallet.mnemonic), "", 0);
   HDPrivateKey account = hd.derive("m/84'/0'/0'/");
 
-  myWallet.xpub= account.xpub();
-  myWallet.mnemonic = mn;
+  account.xpub(myWallet.xpub, sizeof(myWallet.xpub));
   // m/84'/0'/0'/0/0 - account.address() would be the account key itself,
   // which no wallet ever shows and cannot be used to cross-check the seed
-  myWallet.firstAddress= account.derive("0/0").address();
-
-  // Zero out local mn heap buffer before exiting
-  volatile char *p = (volatile char *)mn.c_str();
-  for(unsigned int i = 0; i < mn.length(); i++) p[i] = '\0';
-  mn = "";
+  account.derive("0/0").address(myWallet.firstAddress, sizeof(myWallet.firstAddress));
 }
+
 

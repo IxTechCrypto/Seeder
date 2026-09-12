@@ -65,10 +65,10 @@ typedef struct {
    uint8_t nWords;          //Current number of Words selected on wallet
    uint16_t nBCoinEntropy;  //Bits of entropy captured so far (24 words needs 256, does not fit in uint8_t)
    uint8_t nRolls;          //Dice rolls entered so far
-   String xpub;             //Current account zpub
-   String firstAddress;     //m/84'/0'/0'/0/0
-   String mnemonic;         //Current words
-   String entropyHex;       //Entropy the seed was derived from, shown for offline verification
+   char xpub[128];          //Current account zpub (base58, 111 chars)
+   char firstAddress[96];   //m/84'/0'/0'/0/0 (uBitcoin requires buffer >= 76 bytes)
+   char mnemonic[240];      //Current words (max 24 words, ~200 chars)
+   char entropyHex[65];     //Entropy the seed was derived from, shown for offline verification
 }sWallet;
 
 

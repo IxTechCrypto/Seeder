@@ -253,6 +253,7 @@ int HDPrivateKey::fromSeed(const uint8_t * seed, size_t seedSize, const Network 
     memcpy(chainCode, raw+32, 32);
     pubKey = *this * GeneratorPoint;
     pubKey.compressed = true;
+    memzero(raw, sizeof(raw));
     return 1;
 }
 // int HDPrivateKey::fromSeed(const uint8_t seed[64], const Network * net){
@@ -462,6 +463,8 @@ HDPrivateKey HDPrivateKey::child(uint32_t index, bool hardened) const{
     r.getSecret(secret);
     child.setSecret(secret);
     memzero(secret, 32);
+    memzero(data, sizeof(data));
+    memzero(raw, sizeof(raw));
     return child;
 }
 

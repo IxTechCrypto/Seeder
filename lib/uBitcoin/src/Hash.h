@@ -11,6 +11,7 @@
 #include "utility/trezor/sha2.h"
 #include "utility/trezor/ripemd160.h"
 #include "utility/trezor/hmac.h"
+#include "utility/trezor/memzero.h"
 
 /** \brief Abstract hashing class */
 class HashAlgorithm : public SerializeStream{
@@ -62,6 +63,7 @@ int sha256Hmac(const uint8_t * key, size_t keyLen, const uint8_t * data, size_t 
 class SHA256 : public HashAlgorithm{
 public:
     SHA256(){ begin(); };
+    virtual ~SHA256(){ memzero(&ctx, sizeof(ctx)); }
     void begin();
     void beginHMAC(const uint8_t * key, size_t keySize);
     size_t write(const uint8_t * data, size_t len);
@@ -125,6 +127,7 @@ int sha512(const std::string data, uint8_t hash[64]);
 class SHA512 : public HashAlgorithm{
 public:
     SHA512(){ begin(); };
+    virtual ~SHA512(){ memzero(&ctx, sizeof(ctx)); }
     void begin();
     void beginHMAC(const uint8_t * key, size_t keySize);
     size_t write(const uint8_t * data, size_t len);

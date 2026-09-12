@@ -27,26 +27,26 @@ uint8_t diceRollsNeeded(void){ return (myWallet.nWords == 12) ? DICE_ROLLS_12 : 
 static uint8_t seedSteps(void){ return (myWallet.nWords == 12) ? SHOW_EXPORTQR-1 : SHOW_EXPORTQR; }
 static uint8_t seedStep(void) { return (myWallet.nWords == 12 && menuSeed > SHOW_SEED2) ? menuSeed-1 : menuSeed; }
 
-//Asignar "" sólo pone la longitud a cero: el texto se queda en el buffer
-static void wipeString(String &s){
-  volatile char *p = (volatile char *)s.c_str();
-  for(unsigned int i = 0; i < s.length(); i++) p[i] = '\0';
-  s = "";
+// Cleans stack space previously used by derivation, QR generation, and display routines
+static void __attribute__((noinline)) paintStack(void){
+  volatile uint8_t dummy[3072];
+  for(size_t i = 0; i < sizeof(dummy); i++) dummy[i] = 0;
 }
 
 //Todo lo que permitiría reconstruir la semilla. uBitcoin ya hace memzero de
 //la clave privada y del chain code al destruirlas.
 void wipeSeed(void){
-  wipeString(myWallet.mnemonic);
-  wipeString(myWallet.entropyHex);
-  wipeString(myWallet.xpub);
-  wipeString(myWallet.firstAddress);
+  memzero(myWallet.mnemonic,     sizeof(myWallet.mnemonic));
+  memzero(myWallet.entropyHex,   sizeof(myWallet.entropyHex));
+  memzero(myWallet.xpub,         sizeof(myWallet.xpub));
+  memzero(myWallet.firstAddress, sizeof(myWallet.firstAddress));
   memzero(entropy,   sizeof(entropy));
   memzero(diceRolls, sizeof(diceRolls));
   mnemonic_clear();
   myWallet.nBCoinEntropy = 0;
   myWallet.nRolls = 0;
   diceValue = 1; memzero(rollHist, sizeof(rollHist));
+  paintStack();
 }
 
 //Siempre antes de capturar: entropy[] es global y si no arrastraría bits de

@@ -14,7 +14,7 @@ SEEDER is engineered around a strict **"don't trust, verify"** security architec
 * **100% Independently Verifiable**: The `Entropy (hex)` screen displays the exact raw bytes used to derive your words. You can cross-check the math offline on an air-gapped machine using `sha256sum` and any independent BIP-39 tool. If the words do not match, discard the device.
 * **Volatile RAM Only (Never Written to Flash)**: Your mnemonic, private keys, and entropy exist solely in volatile RAM. No NVS, no EEPROM, no flash writes, and zero persistence across power cycles.
 * **Active Memory Scrubbing on Exit**: Leaving the seed screens or holding OK to cancel triggers active `memzero` zeroization across all mnemonic buffers, entropy arrays, key structures, and internal cryptographic caches.
-* **RF Radios Permanently Disabled**: Wi-Fi and Bluetooth basebands are explicitly powered off at the hardware register level during boot (`esp_wifi_stop()`, `esp_bt_controller_disable()`). No networking, no OTA updates, and no radio emissions.
+* **RF Radios Uninitialized**: Wi-Fi and Bluetooth controllers are never initialized, started, or configured by the firmware. No networking, no OTA updates, and no radio emissions.
 * **Zero Serial Output**: The UART/Serial interface is completely disabled in release builds (`SEEDER_DEBUG=0`). Keys and entropy are never printed or transmitted over USB.
 * **Air-Gapped Operation**: Designed to be operated disconnected from computers using a standalone USB power bank or a data-blocked (power-only) cable.
 
