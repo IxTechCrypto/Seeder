@@ -36,6 +36,13 @@ extern TFT_eSPI tft;
 
 namespace ui {
 
+static bool g_leftHanded = false;
+void setHandedness(bool leftHanded){
+  g_leftHanded = leftHanded;
+  tft.setRotation(g_leftHanded ? 3 : 1);
+}
+bool isLeftHanded(void){ return g_leftHanded; }
+
 /*==============================================================
   PIEZAS
 ==============================================================*/
@@ -125,22 +132,24 @@ void bar(int x, int y, int w, int h, float frac){
   tft.fillRect(x, y, (int)(w * frac + 0.5f), h, UI_ACCENT);
 }
 
-/* Raíl derecho: MOVE arriba, OK abajo, donde están los botones físicos */
-/* Cuando la acción ya dice qué botón es (cara/cruz) el nombre de la tecla
-   sobra: la posición en el raíl ya señala el botón físico. */
+/* Raíl táctico: alineado con los botones físicos según la orientación */
 static void rail(const char *topAct, const char *botAct, bool showKeys){
-  tft.drawFastVLine(UI_RAIL_X, 0, UI_H, UI_TRACK);
-  caret(UI_RAIL_CX, SY(12), SX(9), SY(6), UI_DIM);
+  const int railW  = UI_W - UI_RAIL_X;
+  const int lineX  = g_leftHanded ? railW : UI_RAIL_X;
+  const int railCX = g_leftHanded ? (railW / 2) : UI_RAIL_CX;
+
+  tft.drawFastVLine(lineX, 0, UI_H, UI_TRACK);
+  caret(railCX, SY(12), SX(9), SY(6), UI_DIM);
   if(showKeys){
-    tiny("MOVE", UI_RAIL_CX, UI_RAIL_TOP_Y,    UI_ACCENT, 'C', 1);
-    tiny(topAct, UI_RAIL_CX, UI_RAIL_TOP_Y+SY(10), UI_DIM,    'C', 0);
-    tiny("OK",   UI_RAIL_CX, UI_RAIL_BOT_Y,    UI_ACCENT, 'C', 1);
-    tiny(botAct, UI_RAIL_CX, UI_RAIL_BOT_Y+SY(10), UI_DIM,    'C', 0);
+    tiny("MOVE", railCX, UI_RAIL_TOP_Y,        UI_ACCENT, 'C', 1);
+    tiny(topAct, railCX, UI_RAIL_TOP_Y+SY(10), UI_DIM,    'C', 0);
+    tiny("OK",   railCX, UI_RAIL_BOT_Y,        UI_ACCENT, 'C', 1);
+    tiny(botAct, railCX, UI_RAIL_BOT_Y+SY(10), UI_DIM,    'C', 0);
   }else{
-    tiny(topAct, UI_RAIL_CX, UI_RAIL_TOP_Y+SY(4), UI_ACCENT, 'C', 1);
-    tiny(botAct, UI_RAIL_CX, UI_RAIL_BOT_Y+SY(4), UI_ACCENT, 'C', 1);
+    tiny(topAct, railCX, UI_RAIL_TOP_Y+SY(4),  UI_ACCENT, 'C', 1);
+    tiny(botAct, railCX, UI_RAIL_BOT_Y+SY(4),  UI_ACCENT, 'C', 1);
   }
-  caret(UI_RAIL_CX, SY(124), SX(9), SY(-6), UI_DIM);
+  caret(railCX, SY(124), SX(9), SY(-6), UI_DIM);
 }
 
 void drawPower(int x, int y, uint16_t fgCol, uint16_t bgCol){
@@ -193,18 +202,21 @@ void drawPower(int x, int y, uint16_t fgCol, uint16_t bgCol){
 }
 
 static void eyebrow(const char *s){
-  tft.fillRoundRect(UI_M, SY(5), SX(3), SY(11), 1, UI_ACCENT);
-  tiny(s, UI_M + SX(7), SY(7), UI_ACCENT, 'L', 1);
-  drawPower(UI_RAIL_X - SX(38), SY(3), UI_TEXT, UI_BG);
+  const int m = g_leftHanded ? (UI_W - UI_RAIL_X + UI_M) : UI_M;
+  tft.fillRoundRect(m, SY(5), SX(3), SY(11), 1, UI_ACCENT);
+  tiny(s, m + SX(7), SY(7), UI_ACCENT, 'L', 1);
+  const int pwrX = g_leftHanded ? (UI_W - UI_M - SX(36)) : (UI_RAIL_X - SX(38));
+  drawPower(pwrX, SY(3), UI_TEXT, UI_BG);
 }
 
 /* Número grande: el único elemento a voz alta de la pantalla */
 static int bigNumber(int n, int baselineY){
   char buf[8]; snprintf(buf, sizeof(buf), "%d", n);
-  tft.fillRect(0, baselineY-36, SX(100), 40, UI_BG);   //alto por la fuente, ancho por la placa
+  const int startX = g_leftHanded ? (UI_W - UI_RAIL_X + UI_M) : UI_M;
+  tft.fillRect(startX, baselineY-36, SX(100), 40, UI_BG);   //alto por la fuente, ancho por la placa
   tft.setFreeFont(FMB24);
   tft.setTextColor(UI_TEXT);
-  tft.setCursor(UI_M, baselineY);
+  tft.setCursor(startX, baselineY);
   tft.print(buf);
   return tft.getCursorX();
 }
@@ -247,35 +259,6 @@ void splash(void){
                 seeder_splash_logo_w, seeder_splash_logo_h, seeder_splash_logo, 0x0000);
   tiny("V" SEEDER_VERSION "  " SEEDER_COMMIT, UI_W/2, UI_H - SY(15), UI_DIM, 'C', 1);
   delay(1800);
-
-  /* Segunda pantalla: los creditos. Los dos logotipos y la linea de uBitcoin
-     son bitmaps y no escalan, asi que van como un grupo -uno debajo del otro
-     a distancia fija- y los creditos se anclan al borde de abajo.
-
-     Cada nombre va bajo su preposicion en vez de en una sola fila porque
-     "MADE BY BITMAKER" y "CREDITS TO LUNATICOIN" seguidos ocupan 257 px
-     (111 + 146, con el sp=1 que se les pasa) y la placa pequena tiene 240,
-     de los que ademas 20 son margenes: se tocarian. Partidos en dos, el
-     bloque mas ancho mide 69 y sobra sitio en las dos placas. */
-  tft.fillScreen(UI_BG);
-  const int cr2 = UI_H - SY(9) - UI_TINY_H;     //linea de los nombres
-  const int cr1 = cr2 - SY(12);                 //linea de las preposiciones
-
-  /* El grupo se centra en la banda que queda por encima de los creditos, y no
-     a una distancia fija del borde: como los bitmaps no escalan, colgarlo de
-     arriba lo dejaba pegado al techo en la placa grande con un hueco muerto
-     debajo. Centrado sale igual que antes en la pequena y baja solo en la S3. */
-  const int grupo = SPLASH_LOGO_H + SY(6) + SPLASH_PW_H;
-  const int top   = (cr1 - grupo) / 2;
-  tft.pushImage((UI_W-SPLASH_LOGO_W)/2, top,
-                SPLASH_LOGO_W, SPLASH_LOGO_H, SPLASH_LOGO);
-  tft.pushImage((UI_W-SPLASH_PW_W)/2, top + SPLASH_LOGO_H + SY(6),
-                SPLASH_PW_W, SPLASH_PW_H, SPLASH_PW);
-  tiny("MADE BY",    UI_M,        cr1, UI_DIM,  'L', 1);
-  tiny("BITMAKER",   UI_M,        cr2, UI_TEXT, 'L', 1);
-  tiny("CREDITS TO", UI_W - UI_M, cr1, UI_DIM,  'R', 1);
-  tiny("LUNATICOIN", UI_W - UI_M, cr2, UI_TEXT, 'R', 1);
-  delay(2000);
   tft.fillScreen(UI_BG);
 }
 
@@ -292,8 +275,8 @@ static void brandHead(void){
 
 /* Raíl táctico lateral con panel flotante y chevrons minimalistas del concepto */
 static void thinRail(int y1, int y2, int cardH){
-  const int rx = UI_MRAIL_X + SX(2);
-  const int rw = UI_W - rx - SX(6);
+  const int rx = g_leftHanded ? SX(6) : (UI_MRAIL_X + SX(2));
+  const int rw = UI_W - (UI_MRAIL_X + SX(2)) - SX(6);
   const int rh = (y2 + cardH) - y1;
   const int rcx = rx + rw / 2;
 
@@ -325,8 +308,14 @@ static void thinRail(int y1, int y2, int cardH){
 
 /* Geometría adaptativa para las tarjetas de menú flotantes */
 static void getMenuCardLayout(int &cardX, int &cardW, int &cardH, int &y1, int &y2){
-  cardX = SX(8);
-  cardW = UI_MRAIL_X - cardX - SX(8);
+  const int railW = UI_W - (UI_MRAIL_X + SX(2)) - SX(6);
+  if(g_leftHanded){
+    cardX = SX(6) + railW + SX(8);
+    cardW = UI_W - cardX - SX(8);
+  } else {
+    cardX = SX(8);
+    cardW = UI_MRAIL_X - cardX - SX(8);
+  }
   const int topY = UI_HEAD_H + SY(4);
   const int botY = UI_H - SY(6);
   const int gap  = SY(6);
@@ -369,6 +358,22 @@ static void drawMenuCard(int x, int y, int w, int h, bool sel, const char *title
   } else if(mode == 3){ // 24 Palabras
     if(sel) tft.pushImage(iconX, iconY, 36, 36, icon_words24_orange, 0x0000);
     else    tft.pushImage(iconX, iconY, 36, 36, icon_words24_dim, 0x0000);
+  } else if(mode == 4){ // Right Hand (device with buttons on right)
+    const int dx = iconX + 4, dy = iconY + 9;
+    tft.fillRoundRect(dx, dy, 26, 18, 3, UI_BG);
+    tft.drawRoundRect(dx, dy, 26, 18, 3, sel ? UI_ACCENT : UI_DIM);
+    tft.fillRect(dx + 3, dy + 3, 14, 12, sel ? UI_ACCENT_GLOW : UI_TRACK);
+    tft.fillRect(dx + 5, dy + 5, 2, 8, sel ? UI_ACCENT : UI_DIM);
+    tft.fillRect(dx + 26, dy + 3, 2, 4, sel ? UI_ACCENT : UI_TEXT);
+    tft.fillRect(dx + 26, dy + 11, 2, 4, sel ? UI_ACCENT : UI_TEXT);
+  } else if(mode == 5){ // Left Hand (device with buttons on left)
+    const int dx = iconX + 6, dy = iconY + 9;
+    tft.fillRoundRect(dx, dy, 26, 18, 3, UI_BG);
+    tft.drawRoundRect(dx, dy, 26, 18, 3, sel ? UI_ACCENT : UI_DIM);
+    tft.fillRect(dx + 9, dy + 3, 14, 12, sel ? UI_ACCENT_GLOW : UI_TRACK);
+    tft.fillRect(dx + 19, dy + 5, 2, 8, sel ? UI_ACCENT : UI_DIM);
+    tft.fillRect(dx - 2, dy + 3, 2, 4, sel ? UI_ACCENT : UI_TEXT);
+    tft.fillRect(dx - 2, dy + 11, 2, 4, sel ? UI_ACCENT : UI_TEXT);
   }
 
   // Título y subtítulo centrados verticalmente dentro de la tarjeta
@@ -424,6 +429,25 @@ static void animateSelectionSlide(int cardX, int cardW, int cardH, int fromY, in
     tft.fillRoundRect(pillX, curPillY, pillW, pillH, 2, UI_ACCENT);
     lastPillY = curPillY;
     delay(14);
+  }
+}
+
+void orientation(bool leftSelected, bool animate){
+  int cardX, cardW, cardH, y1, y2;
+  getMenuCardLayout(cardX, cardW, cardH, y1, y2);
+
+  if(animate){
+    const int fromY = leftSelected ? y1 : y2;
+    const int toY   = leftSelected ? y2 : y1;
+    animateSelectionSlide(cardX, cardW, cardH, fromY, toY);
+    drawMenuCard(cardX, y1, cardW, cardH, !leftSelected, "RIGHT HAND", "Buttons on right", 4);
+    drawMenuCard(cardX, y2, cardW, cardH, leftSelected,  "LEFT HAND",  "Buttons on left (180 deg)", 5);
+  } else {
+    tft.fillScreen(UI_BG);
+    brandHead();
+    thinRail(y1, y2, cardH);
+    drawMenuCard(cardX, y1, cardW, cardH, !leftSelected, "RIGHT HAND", "Buttons on right", 4);
+    drawMenuCard(cardX, y2, cardW, cardH, leftSelected,  "LEFT HAND",  "Buttons on left (180 deg)", 5);
   }
 }
 
@@ -495,19 +519,20 @@ void coinEnter(uint16_t totalBits){
 }
 
 void coinUpdate(uint16_t done, uint16_t totalBits, const uint8_t *entropy){
-  /* La etiqueta va pegada al número y se corre con él. El rastro que dejaba
-     al pasar de 100 a 99 era que el rectángulo de borrado cubría y 40..50
-     mientras el texto ocupa 46..53: sobrevivían las filas de abajo. */
+  const int railW = g_leftHanded ? (UI_W - UI_RAIL_X) : 0;
+  const int m = railW + UI_M;
+  const int rightBound = g_leftHanded ? (UI_W - UI_M) : (UI_RAIL_X - SX(4));
+
   const int endX = bigNumber(totalBits - done, SY(56));
-  tft.fillRect(endX, SY(44), UI_RAIL_X - endX - SX(4), SY(14), UI_BG);
+  tft.fillRect(endX, SY(44), rightBound - endX, SY(14), UI_BG);
   tiny("BITS LEFT", endX + SX(10), SY(46), UI_DIM, 'L', 1);
 
   /* Los últimos 16 lanzamientos: lleno = cara, hueco = cruz */
   const int from = (done > 16) ? done - 16 : 0;
   const int cell = SY(8), pitch = SX(9);
-  tft.fillRect(UI_M, SY(72), UI_RAIL_X - UI_M - SX(4), cell, UI_BG);
+  tft.fillRect(m, SY(72), rightBound - m, cell, UI_BG);
   for(int i=0; i<16; i++){
-    const int idx = from + i, x = UI_M + i*pitch;
+    const int idx = from + i, x = m + i*pitch;
     if(idx >= done) break;
     const uint8_t bit = (entropy[idx/8] >> (7 - idx%8)) & 1;
     if(bit) tft.fillRect(x, SY(72), cell, cell, UI_ACCENT);
@@ -516,66 +541,77 @@ void coinUpdate(uint16_t done, uint16_t totalBits, const uint8_t *entropy){
 
   /* La entropía en hexadecimal, por bytes y alternando el color: es lo que
      el usuario coteja contra su papel mientras lanza. */
-  tft.fillRect(UI_M, SY(90), UI_RAIL_X - UI_M - SX(4), SY(24), UI_BG);
+  tft.fillRect(m, SY(90), rightBound - m, SY(24), UI_BG);
   const int bytes = done / 8;
   const int first = (bytes > 26) ? bytes - 26 : 0;
   for(int i=first; i<bytes; i++){
     char b[3]; snprintf(b, sizeof(b), "%02X", entropy[i]);
     const int k = i - first;
-    tiny(b, UI_M + (k % 13) * SX(13), SY(90) + (k / 13) * SY(11),
+    tiny(b, m + (k % 13) * SX(13), SY(90) + (k / 13) * SY(11),
          (i % 2) ? UI_TEXT : UI_ACCENT, 'L', 0);
   }
 
-  bar(UI_M, SY(118), UI_RAIL_X - 2*UI_M, SY(4), (float)done / totalBits);
+  bar(m, SY(118), UI_RAIL_X - 2*UI_M, SY(4), (float)done / totalBits);
 }
 
 /*----------------- captura de dado -----------------*/
 void diceEnter(uint8_t totalRolls){
   tft.fillScreen(UI_BG);
   eyebrow("ROLL DICE");
-  tiny("ROLLS LEFT", UI_M, SY(64), UI_DIM, 'L', 1);
+  const int m = g_leftHanded ? (UI_W - UI_RAIL_X + UI_M) : UI_M;
+  tiny("ROLLS LEFT", m, SY(64), UI_DIM, 'L', 1);
   rail("1-6", "ACCEPT", true);
 }
 
 /* Las tres últimas tiradas, de más antigua a más reciente. Ver el trío
    completo es lo que te deja comprobar que entró lo que lanzaste. */
 void diceHistory(const uint8_t *hist){
-  tft.fillRect(UI_M, SY(78), SX(100), SY(26), UI_BG);
+  const int m = g_leftHanded ? (UI_W - UI_RAIL_X + UI_M) : UI_M;
+  tft.fillRect(m, SY(78), SX(100), SY(26), UI_BG);
   static const uint16_t shade[3] = { UI_TRACK, UI_DIM, UI_TEXT };
   for(int i=0; i<3; i++)
-    if(hist[i]) die(UI_M + i*SX(30), SY(78), SY(26), hist[i], shade[i]);
+    if(hist[i]) die(m + i*SX(30), SY(78), SY(26), hist[i], shade[i]);
 }
 
 void diceUpdate(uint8_t done, uint8_t totalRolls, uint8_t value, const uint8_t *hist){
   bigNumber(totalRolls - done, SY(56));
 
-  const int size = SY(64), x = UI_RAIL_X - size - SX(11);
+  const int m = g_leftHanded ? (UI_W - UI_RAIL_X + UI_M) : UI_M;
+  const int size = SY(64);
+  const int x = g_leftHanded ? (UI_W - size - SX(11)) : (UI_RAIL_X - size - SX(11));
   tft.fillRect(x, SY(16), size, size, UI_BG);
   die(x, SY(16), size, value, UI_ACCENT);
 
   diceHistory(hist);
-  bar(UI_M, SY(118), UI_RAIL_X - 2*UI_M, SY(4), (float)done / totalRolls);
+  bar(m, SY(118), UI_RAIL_X - 2*UI_M, SY(4), (float)done / totalRolls);
 }
 
 /*----------------- mantener OK para empezar de nuevo -----------------*/
-/* Ocupa la pantalla entera, que es deliberado: lo que se va a perder tambien
-   lo es. El rail se reescribe en vez de dejarlo como estaba porque rotulaba
-   las acciones normales de los dos botones -HEADS/TAILS, 1-6/ACCEPT- justo
-   mientras el aviso dice que soltar cancela, y ademas MOVE aqui ya no hace
-   nada. Durante el mantenido el rail ensena solo lo que hay: un boton
-   pulsado, el de abajo. */
 static int holdFilled = 0;          //ancho ya pintado de la barra
 
 void holdEnter(void){
-  tft.fillRect(0, 0, UI_RAIL_X, UI_H, UI_BG);
-  tiny("START OVER",        UI_RAIL_X/2, SY(38), UI_TEXT, 'C', 1, UI_BIG_BODY);
-  tft.fillRect(UI_M, SY(68), UI_RAIL_X - 2*UI_M, SY(10), UI_TRACK);
-  tiny("RELEASE TO CANCEL", UI_RAIL_X/2, SY(92), UI_DIM,  'C', 1);
+  const int railW = UI_W - UI_RAIL_X;
+  if(g_leftHanded){
+    tft.fillRect(railW, 0, UI_W - railW, UI_H, UI_BG);
+    tiny("START OVER", railW + (UI_W - railW)/2, SY(38), UI_TEXT, 'C', 1, UI_BIG_BODY);
+    tft.fillRect(railW + UI_M, SY(68), UI_RAIL_X - 2*UI_M, SY(10), UI_TRACK);
+    tiny("RELEASE TO CANCEL", railW + (UI_W - railW)/2, SY(92), UI_DIM, 'C', 1);
 
-  tft.fillRect(UI_RAIL_X+1, 0, UI_W - UI_RAIL_X - 1, UI_H, UI_BG);
-  tiny("OK",   UI_RAIL_CX, SY(96),  UI_ACCENT, 'C', 1);
-  tiny("HOLD", UI_RAIL_CX, SY(106), UI_TEXT,   'C', 0);
-  caret(UI_RAIL_CX, SY(124), SX(9), SY(-6), UI_DIM);   //senala el boton fisico
+    tft.fillRect(0, 0, railW, UI_H, UI_BG);
+    tiny("OK", railW/2, SY(96), UI_ACCENT, 'C', 1);
+    tiny("HOLD", railW/2, SY(106), UI_TEXT, 'C', 0);
+    caret(railW/2, SY(124), SX(9), SY(-6), UI_DIM);
+  } else {
+    tft.fillRect(0, 0, UI_RAIL_X, UI_H, UI_BG);
+    tiny("START OVER",        UI_RAIL_X/2, SY(38), UI_TEXT, 'C', 1, UI_BIG_BODY);
+    tft.fillRect(UI_M, SY(68), UI_RAIL_X - 2*UI_M, SY(10), UI_TRACK);
+    tiny("RELEASE TO CANCEL", UI_RAIL_X/2, SY(92), UI_DIM,  'C', 1);
+
+    tft.fillRect(UI_RAIL_X+1, 0, UI_W - UI_RAIL_X - 1, UI_H, UI_BG);
+    tiny("OK",   UI_RAIL_CX, SY(96),  UI_ACCENT, 'C', 1);
+    tiny("HOLD", UI_RAIL_CX, SY(106), UI_TEXT,   'C', 0);
+    caret(UI_RAIL_CX, SY(124), SX(9), SY(-6), UI_DIM);   //senala el boton fisico
+  }
   holdFilled = 0;
 }
 
@@ -584,10 +620,11 @@ void holdEnter(void){
 void holdUpdate(float frac){
   if(frac < 0) frac = 0;
   if(frac > 1) frac = 1;
+  const int railW = g_leftHanded ? (UI_W - UI_RAIL_X) : 0;
   const int w  = UI_RAIL_X - 2*UI_M;
   const int px = (int)(w * frac + 0.5f);
   if(px <= holdFilled) return;
-  tft.fillRect(UI_M + holdFilled, SY(68), px - holdFilled, SY(10), UI_ACCENT);
+  tft.fillRect(railW + UI_M + holdFilled, SY(68), px - holdFilled, SY(10), UI_ACCENT);
   holdFilled = px;
 }
 

@@ -36,6 +36,7 @@ enum { coinEntropy, diceEntropy };
 #include "boards/board.h"
 
 /********** 🍃 STATES ************************/
+#define STATE_ORIENTATION 0
 #define STATE_INITMENU    1
 #define STATE_WORDS       2
 #define STATE_SEED        3

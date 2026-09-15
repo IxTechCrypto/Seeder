@@ -109,6 +109,7 @@ Two buttons and nothing more. **MOVE** is the top button, and **OK** is the bott
 
 | Context | MOVE | OK |
 |---|---|---|
+| Handedness / orientation selection | Toggle Right / Left hand | Confirm selection |
 | Menu & word count selection | Change selection | Confirm selection |
 | Flipping coin | Heads (1) | Tails (0) |
 | Rolling dice | Cycle 1 → 6 | Confirm roll |
@@ -121,6 +122,11 @@ During input capture, **holding OK for 3 seconds returns to the menu** and clear
 
 Recent enhancements made to modernize the interface and user experience:
 
+* **Left-Handed & Right-Handed Device Orientation Support**:
+  * Added an interactive boot prompt immediately following the splash screen allowing users to choose between **Right Hand** (default, buttons on right) and **Left Hand** (device rotated 180°, buttons on left).
+  * In Left-Handed mode, the display rotates 180° (`setRotation(3)`), and physical buttons are automatically remapped so that the **physical top button is always MOVE** and the **physical bottom button is always OK**.
+  * The tactical navigation rail and chevrons dynamically mirror to the left margin in left-handed mode so button indicators remain directly adjacent to the user's thumb.
+  * Preserves the strict zero-flash security model: the handedness selection lives purely in RAM for the duration of the session and is prompted fresh on each boot cycle with zero flash writes.
 * **Sovereign Tactical UI (Bitcoin Orange Edition)**:
   * Overhauled the color palette to Bitcoin Electric Orange (`#F7931A` / `0xFD00`) on deep obsidian black (`#000000`) and elevated slate card fills.
   * Replaced the retro green bar with a sleek, dark tactical header featuring an air-gapped security badge, electric orange pill accent, and real-time power status.

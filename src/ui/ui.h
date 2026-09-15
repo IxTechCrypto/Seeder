@@ -17,8 +17,12 @@ void caret(int cx, int y, int w, int h, uint16_t col);
 void bar(int x, int y, int w, int h, float frac);
 void drawPower(int x, int y, uint16_t fgCol, uint16_t bgCol);
 
+void setHandedness(bool leftHanded);
+bool isLeftHanded(void);
+
 /*** Pantallas ***/
 void splash(void);
+void orientation(bool leftSelected, bool animate = false);
 void menu(bool diceSelected, bool animate = false);
 void words(uint8_t nWords, bool animate = false);
 

@@ -56,6 +56,9 @@ void resetEntropy(void){
   myWallet.nBCoinEntropy = 0;
 }
 
+static bool selectedLeftHand = false;
+
+void drawOrientationMenu(bool animate){ ui::orientation(selectedLeftHand, animate); }
 void drawInitMenu(bool animate) { ui::menu(myWallet.entropySrc == diceEntropy, animate); }
 void drawWordsMenu(bool animate){ ui::words(myWallet.nWords, animate); }
 
@@ -131,6 +134,20 @@ static void generateSeed(void){
 /**************🍃 WORKSATES *********************
   🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃🍃
  ***********************************************/
+
+/**************🍃 ORIENTATION MENU *************/
+void doOrientation(void){
+  if(btnMove.click() == SingleClick){
+    selectedLeftHand = !selectedLeftHand;
+    drawOrientationMenu(true);
+  }
+  if(btnSelect.click() == SingleClick){
+    ui::setHandedness(selectedLeftHand);
+    setButtonOrientation(selectedLeftHand);
+    myWallet.State = STATE_INITMENU;
+    drawInitMenu(false);
+  }
+}
 
 /**************🍃 INITIAL MENU *****************/
 /* Todos los estados comparan el tipo de click y nunca su verdad: hay mas de

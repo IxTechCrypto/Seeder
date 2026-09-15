@@ -30,7 +30,7 @@ void Init_TFT(void){
   ui::splash();
 
   myWallet.entropySrc = coinEntropy;
-  drawInitMenu();
+  drawOrientationMenu();
 }
 
 /*****************🍃 BUTTON DETECTION *********************/
@@ -41,8 +41,26 @@ sButton::sButton(byte bPin){        //Constructor
     msecLst = msecEdge = 0; clickState = None;
 }
 void sButton::init(void){  pinMode(pin, INPUT); }     // Init pushbutton pin
+void sButton::setPin(byte bPin){
+    pin = bPin;
+    pinMode(pin, INPUT);
+    antState = digitalRead(pin);
+    longFired = holdFired = false;
+    msecLst = msecEdge = 0;
+    clickState = None;
+}
 int sButton::click(void){  return clickState; }
 void sButton::forceClick(void){ clickState = ForcedClick;} //Generates one click loop
+
+void setButtonOrientation(bool leftHanded){
+    if(leftHanded){
+        btnMove.setPin(PIN_SELECT);
+        btnSelect.setPin(PIN_MOVE);
+    }else{
+        btnMove.setPin(PIN_MOVE);
+        btnSelect.setPin(PIN_SELECT);
+    }
+}
 
 //Cuanto lleva pulsado ahora mismo. Cero significa suelto, asi que sirve
 //igual para dibujar el progreso de un mantenido y para saber si sigue ahi.

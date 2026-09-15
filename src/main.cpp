@@ -19,7 +19,7 @@ void setup() {
   Serial.begin(SERIAL_BAUD);                  // UART only exists in debug builds
 #endif
   Init_TFT();                                   // Init TFT wallet
-  myWallet.State = STATE_INITMENU;
+  myWallet.State = STATE_ORIENTATION;
 }
 
 
@@ -32,6 +32,7 @@ void loop() {
 
     /***** Print menu options ***********/
     switch(myWallet.State){
+      case STATE_ORIENTATION:   doOrientation(); break;
       case STATE_INITMENU:      doInitMenu(); break;
       case STATE_WORDS:        doMenuWords(); break;
       case STATE_SEED:        doShowSeed(); break;

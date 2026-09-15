@@ -30,7 +30,10 @@ class sButton
          int click(void) ;         // Declaracion de funcion externa
          void forceClick(void);    //Generate a click
          unsigned long heldMs(void); //How long the button has been held, 0 if released
+         void setPin(byte bPin);   //Dynamically remap button pin
    } ;
+
+void setButtonOrientation(bool leftHanded);
 
 /**************🍃 POWER / BATTERY ********************/
 uint16_t getBatteryMilliVolts(void);
