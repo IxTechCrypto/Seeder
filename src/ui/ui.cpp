@@ -8,6 +8,7 @@
 #include "../qrcoded.h"
 #include "brand.h"
 #include "tactical_icons.h"
+#include "ixtech_logo.h"
 #include "utility/trezor/memzero.h"
 #if !defined(SEEDER_BOARD_TDISPLAY_S3)
   #include "../Lib/images_splash85.h"
@@ -25,6 +26,12 @@ extern TFT_eSPI tft;
   #define SPLASH_PW      powered_logo
   #define SPLASH_PW_W    poweredWidth
   #define SPLASH_PW_H    poweredHeight
+  #define IXTECH_LOGO    ixtech_logo_s3
+  #define IXTECH_LOGO_W  ixtech_logo_s3_w
+  #define IXTECH_LOGO_H  ixtech_logo_s3_h
+  #define IXTECH_TXT     ixtech_text_logo_s3
+  #define IXTECH_TXT_W   ixtech_text_logo_s3_w
+  #define IXTECH_TXT_H   ixtech_text_logo_s3_h
 #else
   #define SPLASH_LOGO    uBitcoinLogoS
   #define SPLASH_LOGO_W  logouBTCSWidth
@@ -32,6 +39,12 @@ extern TFT_eSPI tft;
   #define SPLASH_PW      powered_logoS
   #define SPLASH_PW_W    poweredSWidth
   #define SPLASH_PW_H    poweredSHeight
+  #define IXTECH_LOGO    ixtech_logo
+  #define IXTECH_LOGO_W  ixtech_logo_w
+  #define IXTECH_LOGO_H  ixtech_logo_h
+  #define IXTECH_TXT     ixtech_text_logo
+  #define IXTECH_TXT_W   ixtech_text_logo_w
+  #define IXTECH_TXT_H   ixtech_text_logo_h
 #endif
 
 namespace ui {
@@ -152,11 +165,44 @@ static void rail(const char *topAct, const char *botAct, bool showKeys){
   caret(railCX, SY(124), SX(9), SY(-6), UI_DIM);
 }
 
+static int s_pwrX = -1;
+static int s_pwrY = -1;
+static uint16_t s_pwrFg = UI_TEXT;
+static uint16_t s_pwrBg = UI_BG;
+static uint8_t s_animFrame = 0;
+static uint32_t s_lastAnimTick = 0;
+static bool s_wasPlugged = false;
+static bool s_wasHasBat = false;
+
+static void drawBatteryInterior(int x, int y, uint8_t bars, uint16_t segCol, uint16_t bgCol){
+  tft.fillRect(x + 3, y + 3, 22, 10, bgCol);
+  if(bars >= 1){
+    tft.fillRoundRect(x + 4, y + 4, 6, 8, 1, segCol);
+  }
+  if(bars >= 2){
+    tft.fillRoundRect(x + 11, y + 4, 6, 8, 1, segCol);
+  }
+  if(bars >= 3){
+    tft.fillRoundRect(x + 18, y + 4, 6, 8, 1, segCol);
+  }
+}
+
 void drawPower(int x, int y, uint16_t fgCol, uint16_t bgCol){
+  s_pwrX = x;
+  s_pwrY = y;
+  s_pwrFg = fgCol;
+  s_pwrBg = bgCol;
+
   const bool plugged = isPowerPlugged();
-  if(plugged){
-    // Modern bold Plug icon (+35% size: 27px wide x 16px high)
-    tft.fillRect(x, y, 29, 16, bgCol);
+  const bool hasBat  = isBatteryConnected();
+  s_wasPlugged = plugged;
+  s_wasHasBat  = hasBat;
+
+  // Clear outer bounding area (34px wide x 16px high)
+  tft.fillRect(x, y, 34, 16, bgCol);
+
+  if(plugged && !hasBat){
+    // STATE 1: USB-C only (NO battery attached) -> Modern bold Plug icon
     // Two bold prongs (3px thick, 6px long)
     tft.fillRect(x,     y + 2, 6, 3, fgCol);
     tft.fillRect(x,     y + 11, 6, 3, fgCol);
@@ -168,17 +214,25 @@ void drawPower(int x, int y, uint16_t fgCol, uint16_t bgCol){
     // Strain relief collar & cord
     tft.fillRect(x + 18, y + 5, 3, 6, fgCol);
     tft.fillRect(x + 21, y + 6, 6, 4, fgCol);
-  } else {
-    // Modern segmented Battery gauge (+35% size: 32px wide x 16px high)
-    const uint8_t pct = getBatteryPercent();
-    tft.fillRect(x, y, 34, 16, bgCol);
+  } else if(plugged && hasBat){
+    // STATE 2: USB-C + Battery connected -> Battery charging animation
     // Bold 2-pixel outer rounded shell
     tft.drawRoundRect(x,     y,     27, 16, 4, fgCol);
     tft.drawRoundRect(x + 1, y + 1, 25, 14, 3, fgCol);
     // Positive terminal pip (smooth rounded)
     tft.fillRoundRect(x + 27, y + 4, 4, 8, 2, fgCol);
 
-    // Segment color based on charge level
+    const uint16_t segCol = (bgCol == UI_ACCENT) ? fgCol : UI_ACCENT;
+    const uint8_t bars = (s_animFrame >= 4) ? 3 : s_animFrame;
+    drawBatteryInterior(x, y, bars, segCol, bgCol);
+  } else {
+    // STATE 3: Running on battery alone (no USB) -> Modern segmented Battery gauge
+    tft.drawRoundRect(x,     y,     27, 16, 4, fgCol);
+    tft.drawRoundRect(x + 1, y + 1, 25, 14, 3, fgCol);
+    tft.fillRoundRect(x + 27, y + 4, 4, 8, 2, fgCol);
+
+    const uint8_t pct = getBatteryPercent();
+
     uint16_t segCol;
     if(pct <= 20){
       segCol = 0xF800; // Alert Red
@@ -188,15 +242,44 @@ void drawPower(int x, int y, uint16_t fgCol, uint16_t bgCol){
       segCol = (bgCol == UI_ACCENT) ? fgCol : UI_ACCENT; // Clean theme green / dark
     }
 
-    // 3 sleek segmented bars inside
-    if(pct > 5){
-      tft.fillRoundRect(x + 4, y + 4, 6, 8, 1, segCol);
+    uint8_t staticBars = 0;
+    if(pct > 5)  staticBars = 1;
+    if(pct >= 35) staticBars = 2;
+    if(pct >= 70) staticBars = 3;
+    drawBatteryInterior(x, y, staticBars, segCol, bgCol);
+  }
+}
+
+void tickPower(void){
+  if(s_pwrX < 0 || s_pwrY < 0) return;
+
+  const uint32_t now = millis();
+  const bool plugged = isPowerPlugged();
+  const bool hasBat  = isBatteryConnected();
+
+  if(plugged != s_wasPlugged || hasBat != s_wasHasBat){
+    s_wasPlugged = plugged;
+    s_wasHasBat  = hasBat;
+    s_animFrame = 0;
+    s_lastAnimTick = now;
+    drawPower(s_pwrX, s_pwrY, s_pwrFg, s_pwrBg);
+    return;
+  }
+
+  if(plugged && hasBat){
+    // Update charging animation every 300ms: 0 -> 1 -> 2 -> 3 -> hold 3 -> loop
+    if(now - s_lastAnimTick >= 300){
+      s_lastAnimTick = now;
+      s_animFrame = (s_animFrame + 1) % 5;
+      const uint16_t segCol = (s_pwrBg == UI_ACCENT) ? s_pwrFg : UI_ACCENT;
+      const uint8_t bars = (s_animFrame >= 4) ? 3 : s_animFrame;
+      drawBatteryInterior(s_pwrX, s_pwrY, bars, segCol, s_pwrBg);
     }
-    if(pct >= 35){
-      tft.fillRoundRect(x + 11, y + 4, 6, 8, 1, segCol);
-    }
-    if(pct >= 70){
-      tft.fillRoundRect(x + 18, y + 4, 6, 8, 1, segCol);
+  } else {
+    // When running on battery or static USB plug, refresh level every 5 seconds
+    if(now - s_lastAnimTick >= 5000){
+      s_lastAnimTick = now;
+      drawPower(s_pwrX, s_pwrY, s_pwrFg, s_pwrBg);
     }
   }
 }
@@ -249,16 +332,121 @@ static void head(const char *title, uint8_t step, uint8_t total){
   }
 #endif
 
+/* Dibuja un destello de luz especular diagonal que recorre una imagen en PROGMEM.
+   Solo ilumina los píxeles propios del bitmap (los 0x0000 de fondo se respetan),
+   creando un reflejo metálico brillante de 60 FPS sin parpadeo. */
+static void renderShimmer(int x, int y, int w, int h, const unsigned short *src, int beamPos, int beamW){
+  static uint16_t buf[160 * 32];
+  if(w * h > (int)(sizeof(buf)/sizeof(buf[0]))) return;
+
+  for(int j = 0; j < h; j++){
+    const int row = j * w;
+    const int yDiag = (j * 11) / 10;
+    for(int i = 0; i < w; i++){
+      const uint16_t c = pgm_read_word(&src[row + i]);
+      if(c == 0x0000){
+        buf[row + i] = 0x0000;
+        continue;
+      }
+      const int dist = abs(i + yDiag - beamPos);
+      if(dist <= 2){
+        buf[row + i] = 0xFFFF; // Núcleo blanco incandescente
+      } else if(dist <= beamW){
+        const int factor = beamW - dist;
+        const int denom  = beamW - 2;
+        const uint8_t r = (c >> 11) & 0x1F;
+        const uint8_t g = (c >> 5)  & 0x3F;
+        const uint8_t b = c & 0x1F;
+        const uint8_t rN = (uint8_t)min(31, r + (14 * factor) / denom);
+        const uint8_t gN = (uint8_t)min(63, g + (36 * factor) / denom);
+        const uint8_t bN = (uint8_t)min(31, b + (30 * factor) / denom);
+        buf[row + i] = (rN << 11) | (gN << 5) | bN;
+      } else {
+        buf[row + i] = c;
+      }
+    }
+  }
+  tft.pushImage(x, y, w, h, buf);
+}
+
 /*==============================================================
   PANTALLAS
 ==============================================================*/
 
 void splash(void){
+  s_pwrX = -1; s_pwrY = -1;
   tft.fillScreen(UI_BG);
   tft.pushImage((UI_W - seeder_splash_logo_w)/2, (UI_H - seeder_splash_logo_h)/2 - SY(8),
                 seeder_splash_logo_w, seeder_splash_logo_h, seeder_splash_logo, 0x0000);
   tiny("V" SEEDER_VERSION "  " SEEDER_COMMIT, UI_W/2, UI_H - SY(15), UI_DIM, 'C', 1);
   delay(1800);
+
+  /* Segunda pantalla: los creditos. Los dos logotipos y la linea de uBitcoin
+     son bitmaps y no escalan, asi que van como un grupo -uno debajo del otro
+     a distancia fija- y los creditos se anclan al borde de abajo.
+
+     Cada nombre va bajo su preposicion en vez de en una sola fila porque
+     "MADE BY BITMAKER" y "CREDITS TO LUNATICOIN" seguidos ocupan 257 px
+     (111 + 146, con el sp=1 que se les pasa) y la placa pequena tiene 240,
+     de los que ademas 20 son margenes: se tocarian. Partidos en dos, el
+     bloque mas ancho mide 69 y sobra sitio en las dos placas. */
+  tft.fillScreen(UI_BG);
+  const int cr2 = UI_H - SY(9) - UI_TINY_H;     //linea de los nombres
+  const int cr1 = cr2 - SY(12);                 //linea de las preposiciones
+
+  /* El grupo se centra en la banda que queda por encima de los creditos, y no
+     a una distancia fija del borde: como los bitmaps no escalan, colgarlo de
+     arriba lo dejaba pegado al techo en la placa grande con un hueco muerto
+     debajo. Centrado sale igual que antes en la pequena y baja solo en la S3. */
+  const int grupo = SPLASH_LOGO_H + SY(6) + SPLASH_PW_H;
+  const int top   = (cr1 - grupo) / 2;
+  tft.pushImage((UI_W-SPLASH_LOGO_W)/2, top,
+                SPLASH_LOGO_W, SPLASH_LOGO_H, SPLASH_LOGO);
+  tft.pushImage((UI_W-SPLASH_PW_W)/2, top + SPLASH_LOGO_H + SY(6),
+                SPLASH_PW_W, SPLASH_PW_H, SPLASH_PW);
+  tiny("MADE BY",    UI_M,        cr1, UI_DIM,  'L', 1);
+  tiny("BITMAKER",   UI_M,        cr2, UI_TEXT, 'L', 1);
+  tiny("CREDITS TO", UI_W - UI_M, cr1, UI_DIM,  'R', 1);
+  tiny("LUNATICOIN", UI_W - UI_M, cr2, UI_TEXT, 'R', 1);
+  delay(2000);
+
+  /* Tercera pantalla: mejoras de ixtech.xyz con animación Neon Shimmer */
+  tft.fillScreen(UI_BG);
+  const int logoX = (UI_W - IXTECH_LOGO_W)/2;
+  const int logoY = SY(22);
+  const int txtX  = (UI_W - IXTECH_TXT_W)/2;
+  const int txtY  = SY(90);
+
+  // Presentación inicial limpia
+  tft.pushImage(logoX, logoY, IXTECH_LOGO_W, IXTECH_LOGO_H, IXTECH_LOGO);
+  tiny("IMPROVEMENTS MADE BY", UI_W/2, SY(74), UI_DIM, 'C', 1);
+  tft.pushImage(txtX, txtY, IXTECH_TXT_W, IXTECH_TXT_H, IXTECH_TXT);
+  delay(350);
+
+  // Fase 1: Destello de luz sobre el logotipo de la hélice
+  const int logoDiagMax = IXTECH_LOGO_W + (IXTECH_LOGO_H * 11)/10 + 12;
+  for(int p = -12; p <= logoDiagMax; p += 4){
+    renderShimmer(logoX, logoY, IXTECH_LOGO_W, IXTECH_LOGO_H, IXTECH_LOGO, p, 9);
+    delay(24);
+  }
+  tft.pushImage(logoX, logoY, IXTECH_LOGO_W, IXTECH_LOGO_H, IXTECH_LOGO);
+
+  // Transición suave: pulso sutil en el subtítulo
+  tiny("IMPROVEMENTS MADE BY", UI_W/2, SY(74), UI_TEXT, 'C', 1);
+  delay(120);
+  tiny("IMPROVEMENTS MADE BY", UI_W/2, SY(74), UI_DIM,  'C', 1);
+  delay(100);
+
+  // Fase 2: Destello metálico sobre las letras 3D ixtech.xyz
+  const int txtDiagMax = IXTECH_TXT_W + (IXTECH_TXT_H * 11)/10 + 20;
+  for(int p = -20; p <= txtDiagMax; p += 6){
+    renderShimmer(txtX, txtY, IXTECH_TXT_W, IXTECH_TXT_H, IXTECH_TXT, p, 14);
+    delay(24);
+  }
+  tft.pushImage(txtX, txtY, IXTECH_TXT_W, IXTECH_TXT_H, IXTECH_TXT);
+
+  // Reposo final para contemplar el diseño antes de pasar al menú
+  delay(600);
   tft.fillScreen(UI_BG);
 }
 
@@ -629,22 +817,23 @@ void holdUpdate(float frac){
 }
 
 void generating(void){
+  s_pwrX = -1; s_pwrY = -1;
   tft.fillScreen(UI_BG);
 
   // Etiqueta superior táctica
-  tiny("CRYPTOGRAPHIC DERIVATION", UI_W/2, SY(26), UI_DIM, 'C', 1);
+  tiny("CRYPTOGRAPHIC DERIVATION", UI_W/2, SY(24), UI_DIM, 'C', 1);
 
   // Título principal en negrita
   tft.setFreeFont(FSSB9);
   tft.setTextDatum(MC_DATUM);
   tft.setTextColor(UI_ACCENT, UI_BG);
-  tft.drawString("GENERATING SEED", UI_W/2, UI_H/2 - SY(14), GFXFF);
+  tft.drawString("GENERATING SEED", UI_W/2, UI_H/2 - SY(18), GFXFF);
   tft.setTextDatum(TL_DATUM);
 
   // Barra de progreso táctica
   const int barX = UI_W / 6;
   const int barW = (UI_W * 2) / 3;
-  const int barY = UI_H / 2 + SY(6);
+  const int barY = UI_H / 2 + SY(8);
   const int barH = SY(6);
 
   tft.fillRoundRect(barX, barY, barW, barH, 3, UI_TRACK);
@@ -657,11 +846,31 @@ void generating(void){
     "FINALIZING BIP39 SEED..."
   };
 
+  static const char hexChars[] = "0123456789ABCDEF";
+  char hexDisplay[24];
+  memset(hexDisplay, 0, sizeof(hexDisplay));
+
   const int TOTAL_STEPS = 12;
   for(int step = 1; step <= TOTAL_STEPS; step++){
     const float frac = (float)step / (float)TOTAL_STEPS;
     const int fillW = (int)(barW * frac + 0.5f);
     tft.fillRoundRect(barX, barY, fillW, barH, 3, UI_ACCENT);
+
+    // Live scrambling crypto hex stream
+    const int lockedPairs = (step * 7) / TOTAL_STEPS;
+    for(int b = 0; b < 7; b++){
+      const int pos = b * 3;
+      if(b < lockedPairs){
+        hexDisplay[pos]     = hexChars[(step * 7 + b * 5) & 0xF];
+        hexDisplay[pos + 1] = hexChars[(step * 11 + b * 3 + 7) & 0xF];
+      } else {
+        hexDisplay[pos]     = hexChars[rand() & 0xF];
+        hexDisplay[pos + 1] = hexChars[rand() & 0xF];
+      }
+      hexDisplay[pos + 2] = (b < 6) ? ' ' : '\0';
+    }
+    tft.fillRect(barX, UI_H/2 - SY(6), barW, SY(10), UI_BG);
+    tiny(hexDisplay, UI_W/2, UI_H/2 - SY(6), (step == TOTAL_STEPS) ? UI_ACCENT : UI_TEXT, 'C', 1);
 
     const int stageIdx = min(3, (step - 1) / 3);
     tft.fillRect(0, barY + barH + SY(8), UI_W, SY(16), UI_BG);
@@ -797,6 +1006,7 @@ static uint8_t qrVersionFor(size_t len){
 }
 
 void seedQr(const char *data){
+  s_pwrX = -1; s_pwrY = -1;
   const size_t len = strlen(data);
   const uint8_t version = qrVersionFor(len);
   QRCode qrcode;
@@ -842,6 +1052,7 @@ void seedQr(const char *data){
 }
 
 void seedExit(void){
+  s_pwrX = -1; s_pwrY = -1;
   tft.fillScreen(UI_BG);
 
   /* Cabecera distinta a propósito: una regla con la etiqueta incrustada.

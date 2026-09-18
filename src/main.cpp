@@ -3,6 +3,7 @@
 #include "btc.h"
 #include "workflow.h"
 #include "GlobalVARS.h"
+#include "ui/ui.h"
 
 sWallet myWallet;
 sButton btnMove(PIN_MOVE);
@@ -39,6 +40,7 @@ void loop() {
       case STATE_COINSEED:    doCoinSeed(); break;
       case STATE_DICESEED:    doDiceSeed(); break;
     }
+    ui::tickPower();
     delay(10);
   }
 }

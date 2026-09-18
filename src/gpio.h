@@ -38,6 +38,7 @@ void setButtonOrientation(bool leftHanded);
 /**************🍃 POWER / BATTERY ********************/
 uint16_t getBatteryMilliVolts(void);
 bool isPowerPlugged(void);
+bool isBatteryConnected(void);
 uint8_t getBatteryPercent(void);
 
 

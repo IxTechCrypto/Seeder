@@ -117,7 +117,7 @@ void sButton::check(void)
 /*****************🍃 POWER / BATTERY MEASUREMENT *********************/
 
 #if defined(SEEDER_BOARD_TDISPLAY_S3)
-#include "hal/usb_serial_jtag_ll.h"
+#include "HWCDC.h"
 #endif
 
 uint16_t getBatteryMilliVolts(void){
@@ -135,14 +135,65 @@ uint16_t getBatteryMilliVolts(void){
 
 bool isPowerPlugged(void){
 #if defined(SEEDER_BOARD_TDISPLAY_S3)
-  // Check if USB hardware is receiving SOF frames from a USB host (PC)
-  if(USB_SERIAL_JTAG.int_raw.sof_int_raw == 1){
+  // When connected to a USB host (PC), ESP32-S3 receives SOF frames via HWCDC
+  if(HWCDC::isPlugged()){
     return true;
   }
 #endif
-  // When plugged in with no battery or while charging, charger pulls line >= 4180mV
+  // Fallback: If charger IC floats line to >= 4200mV
   uint16_t mv = getBatteryMilliVolts();
-  return (mv >= 4180);
+  return (mv >= 4200);
+}
+
+bool isBatteryConnected(void){
+#if defined(PIN_BAT_ADC)
+  // Read 16 samples to compute stable average voltage
+  uint32_t sum = 0;
+  for(int i = 0; i < 16; i++){
+    sum += (uint16_t)(analogReadMilliVolts(PIN_BAT_ADC) * 2);
+    delayMicroseconds(200);
+  }
+  const uint16_t avg = (uint16_t)(sum / 16);
+
+  // If voltage is under 2200mV, rail is unpowered or floating with no battery
+  if(avg < 2200) return false;
+
+  const bool plugged = isPowerPlugged();
+  if(!plugged){
+    // Running solely on battery power: if ESP32 is executing code, battery is present
+    return true;
+  }
+
+  // When plugged into USB power:
+  // If voltage is clamped below 4100mV, a physical LiPo battery is connected and drawing charge.
+  // (An open charger with only a 10uF cap floats at ~4.20V-4.26V and cannot sit steadily below 4.10V).
+  if(avg < 4100){
+    return true;
+  }
+
+#if defined(SEEDER_BOARD_TDISPLAY_S3)
+  // Voltage is >= 4100mV (could be a fully charged Li-ion battery OR an open 10uF capacitor).
+  // Test capacitance with a 30ms 42uA discharge pulse through the top 100k divider resistor:
+  pinMode(PIN_BAT_ADC, OUTPUT);
+  digitalWrite(PIN_BAT_ADC, LOW);
+  delay(30);
+  pinMode(PIN_BAT_ADC, INPUT);
+  delayMicroseconds(500);
+  const uint16_t vAfter = (uint16_t)(analogReadMilliVolts(PIN_BAT_ADC) * 2);
+
+  // An open 10uF capacitor plummets by > 600mV (typically > 1300mV).
+  // A chemical battery cell (thousands of Farads equivalent) drops 0mV (noise < 80mV).
+  if((int)avg - (int)vAfter > 250){
+    return false; // Fast capacitor discharge -> No battery connected
+  }
+  return true;
+#else
+  return (avg < 4200);
+#endif
+
+#else
+  return false;
+#endif
 }
 
 uint8_t getBatteryPercent(void){
