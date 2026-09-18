@@ -1,5 +1,8 @@
 .pio/
 .vscode/
+build/
 dist/
+__pycache__/
 *.bin
 *.exe
+!flasher/firmware/**
