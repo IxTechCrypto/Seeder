@@ -250,23 +250,30 @@ void drawPower(int x, int y, uint16_t fgCol, uint16_t bgCol){
   }
 }
 
+static uint32_t s_lastPwrPoll = 0;
+
 void tickPower(void){
   if(s_pwrX < 0 || s_pwrY < 0) return;
 
   const uint32_t now = millis();
-  const bool plugged = isPowerPlugged();
-  const bool hasBat  = isBatteryConnected();
 
-  if(plugged != s_wasPlugged || hasBat != s_wasHasBat){
-    s_wasPlugged = plugged;
-    s_wasHasBat  = hasBat;
-    s_animFrame = 0;
-    s_lastAnimTick = now;
-    drawPower(s_pwrX, s_pwrY, s_pwrFg, s_pwrBg);
-    return;
+  // Poll hardware power state every 1000ms
+  if(now - s_lastPwrPoll >= 1000){
+    s_lastPwrPoll = now;
+    const bool plugged = isPowerPlugged();
+    const bool hasBat  = isBatteryConnected();
+
+    if(plugged != s_wasPlugged || hasBat != s_wasHasBat){
+      s_wasPlugged = plugged;
+      s_wasHasBat  = hasBat;
+      s_animFrame = 0;
+      s_lastAnimTick = now;
+      drawPower(s_pwrX, s_pwrY, s_pwrFg, s_pwrBg);
+      return;
+    }
   }
 
-  if(plugged && hasBat){
+  if(s_wasPlugged && s_wasHasBat){
     // Update charging animation every 300ms: 0 -> 1 -> 2 -> 3 -> hold 3 -> loop
     if(now - s_lastAnimTick >= 300){
       s_lastAnimTick = now;
@@ -276,7 +283,7 @@ void tickPower(void){
       drawBatteryInterior(s_pwrX, s_pwrY, bars, segCol, s_pwrBg);
     }
   } else {
-    // When running on battery or static USB plug, refresh level every 5 seconds
+    // When running on battery or static USB plug, refresh gauge every 5 seconds
     if(now - s_lastAnimTick >= 5000){
       s_lastAnimTick = now;
       drawPower(s_pwrX, s_pwrY, s_pwrFg, s_pwrBg);

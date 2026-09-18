@@ -120,6 +120,10 @@ void sButton::check(void)
 #include "HWCDC.h"
 #endif
 
+static uint32_t s_lastBatCheck = 0;
+static bool     s_cachedHasBat = true;
+static uint8_t  s_batDebounceCount = 0;
+
 uint16_t getBatteryMilliVolts(void){
 #if defined(PIN_BAT_ADC)
   uint32_t sum = 0;
@@ -140,57 +144,70 @@ bool isPowerPlugged(void){
     return true;
   }
 #endif
-  // Fallback: If charger IC floats line to >= 4200mV
+  // Fallback (e.g. wall charger / power bank): charger pulls line high
   uint16_t mv = getBatteryMilliVolts();
-  return (mv >= 4200);
+  return (mv >= 4220);
 }
 
 bool isBatteryConnected(void){
 #if defined(PIN_BAT_ADC)
-  // Read 16 samples to compute stable average voltage
+  const uint32_t now = millis();
+
+  // Rate-limit hardware sampling to 1 Hz
+  if(s_lastBatCheck != 0 && (now - s_lastBatCheck < 1000)){
+    return s_cachedHasBat;
+  }
+
+  // Sample multiple times across 14ms to measure average and ripple
+  uint16_t vMin = 65535;
+  uint16_t vMax = 0;
   uint32_t sum = 0;
-  for(int i = 0; i < 16; i++){
-    sum += (uint16_t)(analogReadMilliVolts(PIN_BAT_ADC) * 2);
-    delayMicroseconds(200);
+
+  for(int i = 0; i < 8; i++){
+    uint16_t v = (uint16_t)(analogReadMilliVolts(PIN_BAT_ADC) * 2);
+    sum += v;
+    if(v < vMin) vMin = v;
+    if(v > vMax) vMax = v;
+    delayMicroseconds(1800);
   }
-  const uint16_t avg = (uint16_t)(sum / 16);
+  const uint16_t avg = (uint16_t)(sum / 8);
+  const uint16_t ripple = vMax - vMin;
 
-  // If voltage is under 2200mV, rail is unpowered or floating with no battery
-  if(avg < 2200) return false;
-
+  bool rawDetected = false;
   const bool plugged = isPowerPlugged();
+
   if(!plugged){
-    // Running solely on battery power: if ESP32 is executing code, battery is present
-    return true;
+    // Running solely on battery power: if code is executing without USB, battery is present
+    rawDetected = (avg >= 2400);
+  } else {
+    // When plugged into USB power:
+    // A physical Li-ion cell has huge capacitance and clamps rail steadily (< 45mV ripple)
+    // An open charger circuit without a battery oscillates with high ripple or floats > 4250mV
+    if(avg >= 2400 && avg <= 4250 && ripple < 55){
+      rawDetected = true;
+    } else if(avg < 4140){
+      // Under active charging, battery voltage is solidly below 4.14V
+      rawDetected = true;
+    } else {
+      rawDetected = false;
+    }
   }
 
-  // When plugged into USB power:
-  // If voltage is clamped below 4100mV, a physical LiPo battery is connected and drawing charge.
-  // (An open charger with only a 10uF cap floats at ~4.20V-4.26V and cannot sit steadily below 4.10V).
-  if(avg < 4100){
-    return true;
+  // Instant on first check; 2-sample debounced on subsequent transitions
+  if(s_lastBatCheck == 0){
+    s_cachedHasBat = rawDetected;
+  } else if(rawDetected != s_cachedHasBat){
+    s_batDebounceCount++;
+    if(s_batDebounceCount >= 2){
+      s_cachedHasBat = rawDetected;
+      s_batDebounceCount = 0;
+    }
+  } else {
+    s_batDebounceCount = 0;
   }
 
-#if defined(SEEDER_BOARD_TDISPLAY_S3)
-  // Voltage is >= 4100mV (could be a fully charged Li-ion battery OR an open 10uF capacitor).
-  // Test capacitance with a 30ms 42uA discharge pulse through the top 100k divider resistor:
-  pinMode(PIN_BAT_ADC, OUTPUT);
-  digitalWrite(PIN_BAT_ADC, LOW);
-  delay(30);
-  pinMode(PIN_BAT_ADC, INPUT);
-  delayMicroseconds(500);
-  const uint16_t vAfter = (uint16_t)(analogReadMilliVolts(PIN_BAT_ADC) * 2);
-
-  // An open 10uF capacitor plummets by > 600mV (typically > 1300mV).
-  // A chemical battery cell (thousands of Farads equivalent) drops 0mV (noise < 80mV).
-  if((int)avg - (int)vAfter > 250){
-    return false; // Fast capacitor discharge -> No battery connected
-  }
-  return true;
-#else
-  return (avg < 4200);
-#endif
-
+  s_lastBatCheck = now;
+  return s_cachedHasBat;
 #else
   return false;
 #endif
