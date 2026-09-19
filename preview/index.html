@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seeder Flasher — UI Concepts Comparison</title>
+  <style>
+    :root {
+      --bg: #07090e;
+      --card-bg: #0e121b;
+      --border: #1c2436;
+      --text: #f0f4fc;
+      --muted: #828fa6;
+      --cyan: #00f0ff;
+      --yellow: #fcee0a;
+      --apple-blue: #0a84ff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      padding: 32px 24px 64px 24px;
+      line-height: 1.5;
+    }
+    header {
+      max-width: 1280px;
+      margin: 0 auto 36px auto;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 20px;
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+      color: #fff;
+    }
+    h1 span { color: var(--cyan); }
+    p.lead {
+      color: var(--muted);
+      font-size: 15px;
+    }
+    .grid {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 36px;
+    }
+    .concept-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .concept-card:hover {
+      border-color: #2e3c59;
+    }
+    .card-header {
+      padding: 20px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .card-title {
+      font-size: 20px;
+      font-weight: 700;
+    }
+    .tag {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+    }
+    .tag-yellow { background: rgba(252, 238, 10, 0.15); color: var(--yellow); border: 1px solid rgba(252, 238, 10, 0.4); }
+    .tag-cyan { background: rgba(0, 240, 255, 0.15); color: var(--cyan); border: 1px solid rgba(0, 240, 255, 0.4); }
+    .tag-blue { background: rgba(10, 132, 255, 0.15); color: var(--apple-blue); border: 1px solid rgba(10, 132, 255, 0.4); }
+
+    .img-container {
+      width: 100%;
+      background: #020305;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: zoom-in;
+    }
+    .img-container img {
+      width: 100%;
+      height: auto;
+      display: block;
+      transition: opacity 0.2s;
+    }
+    .img-container img:hover {
+      opacity: 0.95;
+    }
+    .card-body {
+      padding: 20px 24px;
+    }
+    .description {
+      color: #c0cadb;
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+    .features {
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 10px;
+    }
+    .features li {
+      font-size: 13px;
+      color: var(--muted);
+      background: rgba(255,255,255,0.02);
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .features li strong { color: #fff; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Seeder Flasher — <span>UI Design Concepts</span></h1>
+    <p class="lead">Three curated visual architectures for the standalone LilyGO USB flashing executable.</p>
+  </header>
+
+  <div class="grid">
+    <!-- Concept 1 -->
+    <div class="concept-card">
+      <div class="card-header">
+        <div class="card-title">1. Cyberpunk 2077 Inspired</div>
+        <span class="tag tag-yellow">Netrunner / Tactical HUD</span>
+      </div>
+      <div class="img-container" onclick="window.open('concept1_cyberpunk2077.jpg')">
+        <img src="concept1_cyberpunk2077.jpg" alt="Cyberpunk 2077 Inspired UI">
+      </div>
+      <div class="card-body">
+        <p class="description">High-contrast tactical netrunner HUD with pitch black textured carbon, aggressive canary yellow hazard stripes, and monospace telemetry readouts.</p>
+        <ul class="features">
+          <li><strong>Colors:</strong> Canary Yellow (#fcee0a), Pitch Black, Neon Red accents</li>
+          <li><strong>Controls:</strong> 45-degree chamfered buttons with hazard diagonal stripes</li>
+          <li><strong>Panels:</strong> Asymmetrical card containers, barcode serial IDs, LED blocks</li>
+          <li><strong>Telemetry:</strong> Integrated right-hand terminal with colored log tags</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Concept 2 -->
+    <div class="concept-card">
+      <div class="card-header">
+        <div class="card-title">2. TRON: Legacy Inspired</div>
+        <span class="tag tag-cyan">The Digital Grid / Identity Disc</span>
+      </div>
+      <div class="img-container" onclick="window.open('concept2_tron_legacy.jpg')">
+        <img src="concept2_tron_legacy.jpg" alt="TRON Legacy Inspired UI">
+      </div>
+      <div class="card-body">
+        <p class="description">Pure digital grid aesthetic featuring sleek obsidian glass, razor-thin luminescent ice blue circuits, and an animated concentric identity disc progress meter.</p>
+        <ul class="features">
+          <li><strong>Colors:</strong> Obsidian Black (#020408), Ice Blue / Cyan (#00f3ff), Glowing White</li>
+          <li><strong>Progress:</strong> Concentric glowing Identity Disc circular progress meter</li>
+          <li><strong>Schematic:</strong> Vector wireframe schematic of LilyGO board and USB pinout</li>
+          <li><strong>Feel:</strong> Surgical precision, calm luminescence, zero visual clutter</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Concept 3 -->
+    <div class="concept-card">
+      <div class="card-header">
+        <div class="card-title">3. Apple Liquid Glass Minimalist</div>
+        <span class="tag tag-blue">visionOS / macOS Glassmorphism</span>
+      </div>
+      <div class="img-container" onclick="window.open('concept3_apple_liquid_glass.jpg')">
+        <img src="concept3_apple_liquid_glass.jpg" alt="Apple Liquid Glass UI">
+      </div>
+      <div class="card-body">
+        <p class="description">Ultra-refined liquid glass frosted acrylic with specular edge highlights, soft diffused shadows, and pristine San Francisco typography.</p>
+        <ul class="features">
+          <li><strong>Colors:</strong> Midnight Space Gray (#0d0f14), Frosted Acrylic Glass, Pure White</li>
+          <li><strong>Device Card:</strong> Centered frosted glass card with 3D LilyGO render & status pill</li>
+          <li><strong>Controls:</strong> Floating pill buttons with subtle glass reflection</li>
+          <li><strong>Feel:</strong> Hyper-clean, premium consumer electronics simplicity</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
