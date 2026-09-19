@@ -95,6 +95,18 @@ static void redrawCapture(void){
   }
 }
 
+void redrawCurrentWorkflowScreen(void){
+  switch(myWallet.State){
+    case STATE_ORIENTATION: drawOrientationMenu(false); break;
+    case STATE_INITMENU:    drawInitMenu(false); break;
+    case STATE_WORDS:       drawWordsMenu(false); break;
+    case STATE_SEED:        drawSeedPage(); break;
+    case STATE_COINSEED:
+    case STATE_DICESEED:    redrawCapture(); break;
+    default: break;
+  }
+}
+
 //true = el ciclo ya esta servido; mientras el aviso esta puesto no responde
 //nada mas de la pantalla, tampoco MOVE
 static bool holdToStartOver(void){

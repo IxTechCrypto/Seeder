@@ -31,6 +31,7 @@ class sButton
          void forceClick(void);    //Generate a click
          unsigned long heldMs(void); //How long the button has been held, 0 if released
          void setPin(byte bPin);   //Dynamically remap button pin
+         void reset(void);         //Reset internal state and suppress pending clicks
    } ;
 
 void setButtonOrientation(bool leftHanded);
@@ -40,6 +41,13 @@ uint16_t getBatteryMilliVolts(void);
 bool isPowerPlugged(void);
 bool isBatteryConnected(void);
 uint8_t getBatteryPercent(void);
+
+/**************🍃 POWER MANAGEMENT ********************/
+void checkDualButtonPowerOff(void);
+void checkInactivityAutoSleep(void);
+void resetInactivityTimer(void);
+bool checkWakeupOrSleepAgain(void);
+void powerOffDevice(void);
 
 
 

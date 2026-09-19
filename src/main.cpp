@@ -12,6 +12,11 @@ sButton btnSelect(PIN_SELECT);
 #include "esp_core_dump.h"
 
 void setup() {
+  // Early verification: if woken by sleep wake trigger, verify dual-button 1.5s hold, else sleep immediately
+  if(!checkWakeupOrSleepAgain()){
+    return;
+  }
+
   // Asegurar que cualquier residuo previo de coredump en flash quede borrado
   esp_core_dump_image_erase();
 
@@ -27,6 +32,10 @@ void setup() {
 void loop() {
   
   while(true){
+    /***** Check power management (dual button hold & inactivity sleep) ******/
+    checkDualButtonPowerOff();
+    checkInactivityAutoSleep();
+
     /***** Check button state ******/
     btnMove.check();
     btnSelect.check();

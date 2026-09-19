@@ -48,4 +48,9 @@ void seedEntropy(const char *hex, uint8_t step, uint8_t total);
 void seedQr(const char *data);
 void seedExit(void);
 
+/*** Power Management UI ***/
+void drawPowerOffProgress(uint16_t elapsedMs, uint16_t totalMs);
+void cancelPowerOffProgress(void);
+void playPowerDownAnimation(void);
+
 }  // namespace ui

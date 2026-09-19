@@ -18,6 +18,8 @@ void Init_TFT(void){
   /* La T-Display-S3 alimenta sus periféricos desde este pin. Si no se pone
      alto ANTES de arrancar el panel, la pantalla no enciende y la placa
      parece muerta: es el fallo clásico de esa placa. */
+  gpio_hold_dis((gpio_num_t)PIN_POWER_ON);
+  gpio_deep_sleep_hold_dis();
   pinMode(PIN_POWER_ON, OUTPUT);
   digitalWrite(PIN_POWER_ON, HIGH);
   delay(20);
@@ -51,6 +53,14 @@ void sButton::setPin(byte bPin){
 }
 int sButton::click(void){  return clickState; }
 void sButton::forceClick(void){ clickState = ForcedClick;} //Generates one click loop
+void sButton::reset(void){
+    antState = digitalRead(pin);
+    msecLst = 0;
+    msecEdge = millis();
+    longFired = true;
+    holdFired = true;
+    clickState = None;
+}
 
 void setButtonOrientation(bool leftHanded){
     if(leftHanded){
@@ -81,6 +91,7 @@ void sButton::check(void)
     byte but = digitalRead(pin);
 
     if(but != antState){
+        resetInactivityTimer();
         if(msec - msecEdge < ButDebounce) return;   // bounce, ignore the edge
         msecEdge = msec;
         antState = but;
@@ -218,6 +229,189 @@ uint8_t getBatteryPercent(void){
   if(mv >= 4150) return 100;
   if(mv <= 3400) return 0;
   return (uint8_t)((mv - 3400) * 100 / (4150 - 3400));
+}
+
+/*****************🍃 POWER MANAGEMENT & DEEP SLEEP *********************/
+#include "esp_sleep.h"
+#include "driver/rtc_io.h"
+
+static uint32_t s_lastActivityMs = 0;
+static uint32_t s_dualHoldStart  = 0;
+static bool     s_dualHoldArmed  = false;
+
+void resetInactivityTimer(void){
+  s_lastActivityMs = millis();
+}
+
+static void configureWakeupTriggers(void){
+  pinMode(PIN_MOVE, INPUT);
+  pinMode(PIN_SELECT, INPUT);
+
+#if defined(SEEDER_BOARD_TDISPLAY_S3)
+  // On ESP32-S3: GPIO 14 (PIN_MOVE) has internal pull-up, GPIO 0 (PIN_SELECT) has external pull-up
+  rtc_gpio_pullup_en((gpio_num_t)PIN_MOVE);
+  rtc_gpio_pulldown_dis((gpio_num_t)PIN_MOVE);
+  rtc_gpio_pullup_en((gpio_num_t)PIN_SELECT);
+  rtc_gpio_pulldown_dis((gpio_num_t)PIN_SELECT);
+  const uint64_t wakeMask = (1ULL << PIN_MOVE) | (1ULL << PIN_SELECT);
+  esp_sleep_enable_ext1_wakeup(wakeMask, ESP_EXT1_WAKEUP_ANY_LOW);
+#else
+  // Classic ESP32: GPIO 35 and GPIO 0 both have external pull-ups on TTGO T-Display board
+  const uint64_t wakeMask = (1ULL << PIN_MOVE) | (1ULL << PIN_SELECT);
+  esp_sleep_enable_ext1_wakeup(wakeMask, ESP_EXT1_WAKEUP_ALL_LOW);
+#endif
+}
+
+static void enterDeepSleepFast(void){
+#if defined(PIN_POWER_ON)
+  digitalWrite(PIN_POWER_ON, LOW);
+  gpio_hold_en((gpio_num_t)PIN_POWER_ON);
+  gpio_deep_sleep_hold_en();
+#endif
+  configureWakeupTriggers();
+  esp_deep_sleep_start();
+}
+
+void powerOffDevice(void){
+  // 1. Play sleek Tron power down animation
+  ui::playPowerDownAnimation();
+
+  // 2. Put display controller into low power sleep mode
+  tft.writecommand(0x10); // ST7789_SLPIN
+  tft.writecommand(0x28); // ST7789_DISPOFF
+  delay(100);
+
+  // 3. Cut peripheral & backlight power
+#if defined(PIN_POWER_ON)
+  pinMode(PIN_POWER_ON, OUTPUT);
+  digitalWrite(PIN_POWER_ON, LOW);
+  gpio_hold_en((gpio_num_t)PIN_POWER_ON);
+  gpio_deep_sleep_hold_en();
+#endif
+#if defined(TFT_BL)
+  pinMode(TFT_BL, OUTPUT);
+  digitalWrite(TFT_BL, LOW);
+#endif
+
+  // 4. Configure wake triggers and enter deep sleep
+  configureWakeupTriggers();
+  esp_deep_sleep_start();
+}
+
+bool checkWakeupOrSleepAgain(void){
+  // Always unhold power pins on boot
+#if defined(PIN_POWER_ON)
+  gpio_hold_dis((gpio_num_t)PIN_POWER_ON);
+  gpio_deep_sleep_hold_dis();
+#endif
+
+  const esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
+
+  // If not woken by button press (e.g. cold power-on, reset button, USB plug-in): boot normally
+  if(cause != ESP_SLEEP_WAKEUP_EXT1){
+    resetInactivityTimer();
+    return true;
+  }
+
+  // Woken by EXT1 button trigger: verify dual-button hold for 1.5 seconds
+  pinMode(PIN_MOVE, INPUT);
+  pinMode(PIN_SELECT, INPUT);
+#if defined(SEEDER_BOARD_TDISPLAY_S3)
+  pinMode(PIN_MOVE, INPUT_PULLUP);
+  pinMode(PIN_SELECT, INPUT_PULLUP);
+#endif
+
+  // Grace period: allow up to 250ms for the second finger to contact
+  const uint32_t graceStart = millis();
+  bool bothLow = false;
+  while(millis() - graceStart < 250){
+    if(digitalRead(PIN_MOVE) == LOW && digitalRead(PIN_SELECT) == LOW){
+      bothLow = true;
+      break;
+    }
+    delay(5);
+  }
+
+  if(!bothLow){
+    // Single accidental button bump in pocket/bag: abort and return to deep sleep
+    enterDeepSleepFast();
+    return false;
+  }
+
+  // Both buttons are LOW: verify they remain held continuously for 1500 ms
+  const uint32_t holdStart = millis();
+  uint8_t highDebounce = 0;
+  while(millis() - holdStart < 1500){
+    if(digitalRead(PIN_MOVE) == HIGH || digitalRead(PIN_SELECT) == HIGH){
+      highDebounce++;
+      if(highDebounce >= 4){ // ~40ms confirmed release
+        // Released prematurely: return to deep sleep
+        enterDeepSleepFast();
+        return false;
+      }
+    } else {
+      highDebounce = 0;
+    }
+    delay(10);
+  }
+
+  // Power-on confirmed! Wait for release to avoid spurious initial clicks
+  while(digitalRead(PIN_MOVE) == LOW || digitalRead(PIN_SELECT) == LOW){
+    delay(20);
+  }
+
+  resetInactivityTimer();
+  return true;
+}
+
+void checkDualButtonPowerOff(void){
+  const byte moveState = digitalRead(PIN_MOVE);
+  const byte selState  = digitalRead(PIN_SELECT);
+
+  if(moveState == LOW && selState == LOW){
+    const uint32_t now = millis();
+    if(s_dualHoldStart == 0){
+      s_dualHoldStart = now;
+      s_dualHoldArmed = false;
+    }
+
+    const uint32_t elapsed = now - s_dualHoldStart;
+
+    if(elapsed >= 300){
+      s_dualHoldArmed = true;
+      btnMove.reset();
+      btnSelect.reset();
+      ui::drawPowerOffProgress((uint16_t)elapsed, 2000);
+
+      if(elapsed >= 2000){
+        // Hold reached 2.0s -> initiate shutdown!
+        s_dualHoldStart = 0;
+        s_dualHoldArmed = false;
+        powerOffDevice();
+      }
+    }
+  } else {
+    // Either or both buttons released
+    if(s_dualHoldArmed){
+      // Released before 2.0s: cancel power-off overlay and restore screen
+      btnMove.reset();
+      btnSelect.reset();
+      ui::cancelPowerOffProgress();
+    }
+    s_dualHoldStart = 0;
+    s_dualHoldArmed = false;
+  }
+}
+
+void checkInactivityAutoSleep(void){
+  if(s_lastActivityMs == 0){
+    s_lastActivityMs = millis();
+    return;
+  }
+  // 3 minutes inactivity threshold
+  if(millis() - s_lastActivityMs >= (3UL * 60UL * 1000UL)){
+    powerOffDevice();
+  }
 }
 
 

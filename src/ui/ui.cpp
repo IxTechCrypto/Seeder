@@ -3,6 +3,7 @@
 #include "theme.h"
 #include "ui.h"
 #include "../gpio.h"
+#include "../workflow.h"
 #include "../Lib/images.h"
 #include "../Lib/Free_Fonts.h"
 #include "../qrcoded.h"
@@ -1085,6 +1086,76 @@ void seedExit(void){
   tiny("HOLD OK", bx + bw/2, by + (bh-8*UI_BIG_BODY)/2, UI_ACCENT, 'C', 1, UI_BIG_BODY);
   /* la punta señala al botón OK físico, en el borde derecho */
   tft.fillTriangle(UI_W-SX(6), by+SY(9), UI_W-SX(6), by+SY(21), UI_W-SX(1), by+SY(15), UI_ACCENT);
+}
+
+static bool s_powerOffOverlayActive = false;
+static uint16_t s_lastFilledProgress = 0;
+
+void drawPowerOffProgress(uint16_t elapsedMs, uint16_t totalMs){
+  const int boxW = SX(190);
+  const int boxH = SY(64);
+  const int boxX = (UI_W - boxW) / 2;
+  const int boxY = (UI_H - boxH) / 2;
+
+  if(!s_powerOffOverlayActive){
+    s_powerOffOverlayActive = true;
+    s_lastFilledProgress = 0;
+    tft.fillRoundRect(boxX, boxY, boxW, boxH, 8, UI_CARD_BG);
+    tft.drawRoundRect(boxX, boxY, boxW, boxH, 8, UI_ACCENT);
+    tiny("HOLD TO POWER OFF", UI_W / 2, boxY + SY(12), UI_ACCENT, 'C', 1);
+
+    const int barX = boxX + SX(16);
+    const int barW = boxW - SX(32);
+    const int barY = boxY + SY(30);
+    const int barH = SY(8);
+    tft.fillRoundRect(barX, barY, barW, barH, 3, UI_TRACK);
+  }
+
+  const int barX = boxX + SX(16);
+  const int barW = boxW - SX(32);
+  const int barY = boxY + SY(30);
+  const int barH = SY(8);
+
+  float frac = (float)elapsedMs / (float)totalMs;
+  if(frac < 0.0f) frac = 0.0f;
+  if(frac > 1.0f) frac = 1.0f;
+
+  int fillW = (int)(barW * frac);
+  if(fillW > s_lastFilledProgress){
+    tft.fillRoundRect(barX, barY, fillW, barH, 3, UI_ACCENT);
+    s_lastFilledProgress = fillW;
+  }
+
+  char buf[16];
+  float remSec = (float)(totalMs > elapsedMs ? totalMs - elapsedMs : 0) / 1000.0f;
+  snprintf(buf, sizeof(buf), "%.1fs", remSec);
+  tft.fillRect(boxX + SX(50), boxY + SY(44), boxW - SX(100), SY(14), UI_CARD_BG);
+  tiny(buf, UI_W / 2, boxY + SY(46), UI_DIM, 'C', 1);
+}
+
+void cancelPowerOffProgress(void){
+  if(!s_powerOffOverlayActive) return;
+  s_powerOffOverlayActive = false;
+  s_lastFilledProgress = 0;
+  redrawCurrentWorkflowScreen();
+}
+
+void playPowerDownAnimation(void){
+  // CRT / TRON identity collapse
+  for(int i = 0; i < UI_H / 2; i += 8){
+    tft.fillRect(0, i, UI_W, 8, UI_BG);
+    tft.fillRect(0, UI_H - i - 8, UI_W, 8, UI_BG);
+    delay(10);
+  }
+  tft.drawFastHLine(0, UI_H / 2, UI_W, UI_ACCENT);
+  delay(60);
+  for(int w = UI_W / 2; w > 0; w -= 16){
+    tft.drawFastHLine(UI_W / 2 - w, UI_H / 2, 16, UI_BG);
+    tft.drawFastHLine(UI_W / 2 + w - 16, UI_H / 2, 16, UI_BG);
+    delay(8);
+  }
+  tft.fillScreen(UI_BG);
+  delay(50);
 }
 
 }  // namespace ui

@@ -11,3 +11,4 @@ void doDiceSeed(void);
 void drawOrientationMenu(bool animate = false);
 void drawInitMenu(bool animate = false);
 void drawWordsMenu(bool animate = false);
+void redrawCurrentWorkflowScreen(void);
