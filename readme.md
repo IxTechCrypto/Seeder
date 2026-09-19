@@ -6,6 +6,57 @@ With SEEDER you can perform the **coin seed** process, generate entropy using **
 
 All of this thanks to the brilliant idea of @Lunaticoin and my implementation.
 
+## ⚡ IxTech Sovereign Edition — Repo Updates & Enhancements
+
+This repository ([`IxTechCrypto/Seeder`](https://github.com/IxTechCrypto/Seeder)) is an enhanced sovereign edition of the original [BitMaker-hub/Seeder](https://github.com/BitMaker-hub/Seeder) firmware, engineered with dual-button power management and auto-sleep, a standalone TRON: Legacy desktop flasher GUI, an ambidextrous interface, an overhauled Bitcoin Orange tactical UI, and hardened memory zeroization.
+
+### 🚀 Major Enhancements in this Repository
+
+* **🔋 Advanced Power Architecture & Deep Sleep (Zero Hardware Mods Required)**:
+  * **Dual-Button Power-Off (2.0s Hold)**: Holding both physical buttons (`MOVE` + `OK`) simultaneously from any screen brings up an interactive TRON progress modal (`HOLD TO POWER OFF`) with a live 2.0s countdown. Releasing early cleanly cancels shutdown and suppresses accidental clicks. Holding for 2.0s triggers a retro CRT-collapse animation, puts the ST7789 display controller into low-power sleep (`SLPIN` + `DISPOFF`), isolates the power rails (`PIN_POWER_ON` / backlight = `LOW`), and puts the ESP32 into deep sleep (**~35–50 µA** standby draw).
+  * **Pocket-Proof Power-On (1.5s Hold)**: Wakes from deep sleep on either button via `EXT1`. In `setup()`, the firmware verifies whether **both** buttons remain held continuously for **1.5 seconds**. Accidental bumps in a pocket or bag immediately abort back to deep sleep in **< 30 ms** without lighting the screen.
+  * **Inactivity Auto-Sleep**: Automatically powers down to deep sleep after **3 minutes** of inactivity to safeguard LiPo battery life.
+  * **Instant USB Wake**: Connecting a USB-C power source or pressing the hardware reset button powers on immediately.
+
+* **💻 Standalone TRON: Legacy Desktop Flasher GUI (`SeederFlasher`)**:
+  * Bundled standalone desktop GUI (`flasher/` and executable `dist/SeederFlasher.exe`) for effortless, zero-command-line firmware installation.
+  * Styled in an authentic TRON: Legacy cyberpunk aesthetic with animated glowing Identity Disc, 3D perspective grid, and high-contrast cyan telemetry cards.
+  * **Auto COM Port Detection**: Automatically scans and enumerates plugged-in USB-to-UART controllers (CH340, CP210x, native ESP32-S3 USB CDC).
+  * **One-Click Multi-Board Flashing**: Pre-configured flashing engine for both **LilyGO TTGO T-Display (ESP32)** and **LilyGO T-Display-S3 (ESP32-S3)** with automatic chip identification, baud rate selection (up to 921600 baud), and live terminal output logs.
+
+* **🎨 Sovereign Tactical UI & Bitcoin Orange Overhaul**:
+  * Overhauled the color palette to Bitcoin Electric Orange (`#F7931A` / `0xFD00`) on deep obsidian black (`#000000`) with elevated card fills and ambient glow halos (`0x9340`).
+  * **Floating Glowing Cards**: Modernized menu options into rounded floating cards with double-border glow halos.
+  * **Smooth 60 FPS Sliding Animations**: Pressing **MOVE** smoothly translates the vertical orange selection pill between cards (~95ms duration) while seamlessly transitioning card border glow without screen flicker.
+  * **Crisp Vector Typography**: Converted blocky 5×7 pixel text to crisp vector sans-serif typography using Adafruit GFX `FreeSansBold 9pt` (`FSSB9`) and `FreeSansBold 12pt` (`FSSB12`).
+  * **Modernized High-DPI Iconography**: Enlarged and bolder vector status icons (+35% visual weight) with rounded geometry, strain relief, and 3D isometric dice/coin graphics.
+  * **Tactical 3D Branding**: Integrated `ixtech.xyz` glowing banner and tactical security badges.
+
+* **⚡ Real-Time Hardware Battery & USB Status Gauge**:
+  * Uses the board's built-in factory resistor divider (`GPIO 4` on T-Display-S3, `GPIO 34` on classic T-Display) along with native USB SOF detection and ripple-filtering.
+  * **USB Plug Indicator**: Displayed automatically in the top header whenever the device is powered via USB-C or actively charging.
+  * **Segmented Battery Gauge**: When running on battery power alone (unplugged from USB), automatically switches to a 3-segment pill battery gauge with real-time color-coding (Electric Orange $>45\%$, Amber $20-45\%$, Alert Red $\le 20\%$).
+
+* **🔄 Ambidextrous Ergonomics (Left-Handed & Right-Handed Mode)**:
+  * Added an interactive boot prompt immediately following the splash screen allowing users to choose between **Right Hand** (default, buttons on right) and **Left Hand** (device rotated 180°, buttons on left).
+  * In Left-Handed mode, the display rotates 180° (`setRotation(3)`), and physical buttons are automatically remapped so that the **physical top button is always MOVE** and the **physical bottom button is always OK**.
+  * Tactical navigation rails and chevrons dynamically mirror to the left margin in left-handed mode so button indicators remain directly adjacent to the user's thumb.
+  * Preserves the strict zero-flash security model: the handedness selection lives purely in RAM for the duration of the session and is prompted fresh on each boot cycle with zero flash writes.
+
+* **🛡️ Hardened Memory & Anti-Remanence Security Architecture**:
+  * **Strict Zero-Silicon Entropy**: 100% user-supplied via physical coin flips or Coldcard-compatible dice rolls. The device silicon TRNG/PRNG is never used.
+  * **Volatile RAM Only**: Mnemonic phrases, raw entropy, and keys exist exclusively in RAM; NVS and EEPROM persistence are disabled.
+  * **Active `memzero` Scrubbing**: Exiting seed screens or holding OK to cancel immediately zeroizes all mnemonic buffers, entropy arrays, key structures, and cryptographic caches.
+  * **RF Radio Isolation**: Wi-Fi and Bluetooth hardware controllers are completely uninitialized and kept powered down.
+  * **Silent Serial**: UART output disabled in production (`SEEDER_DEBUG=0`).
+  * **Coredump & Crash Dump Prevention**: Disabled flash coredump handlers to ensure crash states never persist secret material to SPI flash.
+
+* **🖨️ 3D Printable Tactical Enclosure**:
+  * Parametric snap-fit rugged enclosure designs in `3d files/Carcasa_Tactica_v1/` featuring tactile button extensions, USB-C clearance, and lanyard loop.
+
+* **🎬 Launch Video & Social Media Kit**:
+  * Includes the `/brag` launch package (`brag-output/`): 1080p demo video (`brag.mp4`), poster frame (`brag.jpg`), storyboard, and ready-to-publish launch copy (`social-posts.md`) for Twitter/X, Facebook, TikTok, and YouTube Shorts.
+
 ## 🔒 Core Security Model at a Glance
 
 SEEDER is engineered around a strict **"don't trust, verify"** security architecture:
@@ -118,30 +169,6 @@ Two buttons and nothing more. **MOVE** is the top button, and **OK** is the bott
 
 During input capture, **holding OK for 3 seconds returns to the menu** and clears all captured entropy: if you made a mistake on roll 40 of 99, you do not need to unplug the device. At ~1.2s, a progress bar appears; releasing before it fills will not record an inadvertent flip or roll.
 
-## Recent UI & Firmware Updates
-
-Recent enhancements made to modernize the interface and user experience:
-
-* **Left-Handed & Right-Handed Device Orientation Support**:
-  * Added an interactive boot prompt immediately following the splash screen allowing users to choose between **Right Hand** (default, buttons on right) and **Left Hand** (device rotated 180°, buttons on left).
-  * In Left-Handed mode, the display rotates 180° (`setRotation(3)`), and physical buttons are automatically remapped so that the **physical top button is always MOVE** and the **physical bottom button is always OK**.
-  * The tactical navigation rail and chevrons dynamically mirror to the left margin in left-handed mode so button indicators remain directly adjacent to the user's thumb.
-  * Preserves the strict zero-flash security model: the handedness selection lives purely in RAM for the duration of the session and is prompted fresh on each boot cycle with zero flash writes.
-* **Sovereign Tactical UI (Bitcoin Orange Edition)**:
-  * Overhauled the color palette to Bitcoin Electric Orange (`#F7931A` / `0xFD00`) on deep obsidian black (`#000000`) and elevated slate card fills.
-  * Replaced the retro green bar with a sleek, dark tactical header featuring an air-gapped security badge, electric orange pill accent, and real-time power status.
-* **Floating Glowing Cards & Futuristic Typography**:
-  * Upgraded menu options ("DICE SEED", "COIN SEED", "12 WORDS", "24 WORDS") into rounded floating cards with glowing double-borders and ambient glow halos (`0x9340`).
-  * Converted blocky 5×7 pixel text to crisp vector sans-serif typography using Adafruit GFX `FreeSansBold 9pt` (`FSSB9`) and `FreeSansBold 12pt` (`FSSB12`).
-* **Sliding Menu Selection Animation**:
-  * Implemented butter-smooth 60 FPS ease-out sliding animation: pressing **MOVE** smoothly translates the vertical orange selection pill between cards (~95ms duration) while seamlessly transitioning card border glow without screen flicker.
-* **Dynamic Power & Battery Status (Zero Hardware Changes Required)**:
-  * Uses the board's built-in factory resistor divider (`GPIO 4` on T-Display-S3, `GPIO 34` on classic T-Display) along with native USB SOF detection.
-  * **USB Plug Indicator**: Displayed automatically in the top header whenever the device is powered via USB-C or actively charging.
-  * **Segmented Battery Gauge**: When running on battery power alone (unplugged from USB), automatically switches to a 3-segment pill battery gauge with real-time color-coding (Electric Orange $>45\%$, Amber $20-45\%$, Alert Red $\le 20\%$).
-* **Modernized High-DPI Iconography**:
-  * Enlarged and bolder vector status icons (+35% visual weight) with rounded geometry, strain relief, and grip details optimized for high DPI displays.
-  * Integrated consistently across the Main Menu, Word Selection, Dice/Coin Capture, and Seed Review screens.
 
 ## Verification
 

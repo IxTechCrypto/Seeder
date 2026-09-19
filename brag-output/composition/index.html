@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>SEEDER — Sovereign Seed Generator</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        background: #06080b;
+        color: #ffffff;
+        font-family: sans-serif;
+        overflow: hidden;
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: radial-gradient(circle at 50% 50%, #121824 0%, #06080b 100%);
+      }
+      .clip {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
+      .ambient-glow {
+        position: absolute;
+        width: 800px;
+        height: 800px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(247, 147, 26, 0.15) 0%, transparent 70%);
+        pointer-events: none;
+      }
+      .tag-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 20px;
+        border-radius: 9999px;
+        background: rgba(247, 147, 26, 0.15);
+        border: 1px solid rgba(247, 147, 26, 0.5);
+        color: #f7931a;
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        margin-bottom: 24px;
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #f7931a;
+        box-shadow: 0 0 10px #f7931a;
+      }
+      .dot-green {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #10b981;
+        box-shadow: 0 0 10px #10b981;
+      }
+      .headline-massive {
+        font-size: 72px;
+        font-weight: 900;
+        line-height: 1.1;
+        text-align: center;
+        max-width: 1400px;
+        letter-spacing: -1px;
+        color: #ffffff;
+        margin: 0 0 24px 0;
+      }
+      .headline-orange {
+        color: #f7931a;
+        text-shadow: 0 0 40px rgba(247, 147, 26, 0.4);
+      }
+      .subtext {
+        font-size: 32px;
+        font-weight: 400;
+        color: #cbd5e1;
+        text-align: center;
+        max-width: 1100px;
+        margin: 0;
+        line-height: 1.4;
+      }
+      .hardware-frame {
+        position: relative;
+        width: 900px;
+        height: 520px;
+        border-radius: 20px;
+        overflow: hidden;
+        border: 2px solid rgba(247, 147, 26, 0.5);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(247, 147, 26, 0.25);
+        background: #000;
+      }
+      .hardware-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .badge-row {
+        display: flex;
+        gap: 20px;
+        margin-top: 36px;
+      }
+      .feature-badge {
+        padding: 14px 28px;
+        border-radius: 12px;
+        background: #111722;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        color: #ffffff;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      }
+      .feature-badge-accent {
+        background: rgba(247, 147, 26, 0.2);
+        border: 1px solid #f7931a;
+        color: #f7931a;
+      }
+      .card-grid {
+        display: flex;
+        gap: 32px;
+        margin-top: 28px;
+      }
+      .tactical-card {
+        width: 380px;
+        padding: 32px 28px;
+        border-radius: 18px;
+        background: #0f141d;
+        border: 2px solid rgba(247, 147, 26, 0.3);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+        text-align: left;
+      }
+      .tactical-card-active {
+        border-color: #f7931a;
+        background: #151d2b;
+        box-shadow: 0 0 30px rgba(247, 147, 26, 0.35);
+      }
+      .card-title {
+        font-size: 26px;
+        font-weight: 800;
+        color: #f7931a;
+        margin-bottom: 12px;
+        letter-spacing: 1px;
+      }
+      .card-desc {
+        font-size: 18px;
+        color: #94a3b8;
+        line-height: 1.5;
+        margin: 0;
+      }
+      .terminal-box {
+        width: 1000px;
+        background: #0c1017;
+        border: 1px solid #334155;
+        border-radius: 14px;
+        padding: 24px 32px;
+        font-family: monospace;
+        text-align: left;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
+        margin-top: 24px;
+      }
+      .terminal-header {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+      .term-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #475569;
+      }
+      .term-line {
+        font-size: 22px;
+        color: #38bdf8;
+        margin: 8px 0;
+      }
+      .term-result {
+        font-size: 22px;
+        color: #4ade80;
+        margin: 8px 0;
+      }
+      .logo-frame {
+        width: 240px;
+        height: 240px;
+        border-radius: 32px;
+        overflow: hidden;
+        border: 3px solid #f7931a;
+        box-shadow: 0 0 50px rgba(247, 147, 26, 0.4);
+        margin-bottom: 24px;
+      }
+      .logo-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-width="1920"
+      data-height="1080"
+      data-duration="20"
+    >
+      <!-- Background Audio -->
+      <audio id="bg-music" src="assets/music.mp3" data-start="0" data-duration="20"></audio>
+      <audio id="sfx-shake" src="assets/dice-shake.ogg" data-start="0.2" data-duration="1.5"></audio>
+      <audio id="sfx-throw" src="assets/dice-throw.ogg" data-start="4.1" data-duration="0.64"></audio>
+      <audio id="sfx-slide" src="assets/card-slide.ogg" data-start="9.2" data-duration="0.60"></audio>
+      <audio id="sfx-chip" src="assets/chip-lay.ogg" data-start="14.6" data-duration="0.18"></audio>
+
+      <!-- Scene 1: The Hook (0.0s - 4.0s) -->
+      <section id="scene-1" class="clip" data-start="0" data-duration="4">
+        <div class="ambient-glow"></div>
+        <div id="s1-badge" class="tag-pill">
+          <span class="dot"></span>
+          Air-Gapped Sovereign Hardware
+        </div>
+        <h1 id="s1-headline" class="headline-massive">
+          NEVER TRUST <span class="headline-orange">SILICON</span><br />
+          TO GENERATE YOUR KEYS
+        </h1>
+        <p id="s1-subtext" class="subtext">
+          Most hardware wallets generate entropy inside an unverifiable black box.
+        </p>
+      </section>
+
+      <!-- Scene 2: The Hardware (4.0s - 9.0s) -->
+      <section id="scene-2" class="clip" data-start="4" data-duration="5">
+        <div class="ambient-glow"></div>
+        <div id="s2-badge" class="tag-pill">
+          <span class="dot"></span>
+          Pure Human Entropy
+        </div>
+        <div id="s2-card" class="hardware-frame">
+          <img class="hardware-img" src="assets/seeder_hardware.jpg" alt="SEEDER Hardware" />
+        </div>
+        <div id="s2-badges" class="badge-row">
+          <div class="feature-badge">NO TRNG / PRNG</div>
+          <div class="feature-badge feature-badge-accent">100% COIN &amp; DICE ENTROPY</div>
+          <div class="feature-badge">VOLATILE RAM ONLY</div>
+        </div>
+      </section>
+
+      <!-- Scene 3: The Tactical UI & Math (9.0s - 14.5s) -->
+      <section id="scene-3" class="clip" data-start="9" data-duration="5.5">
+        <div class="ambient-glow"></div>
+        <div id="s3-badge" class="tag-pill">
+          <span class="dot-green"></span>
+          Deterministic BIP-39 Math
+        </div>
+        <h2 id="s3-headline" class="headline-massive" style="font-size: 56px; margin-bottom: 12px;">
+          THE MATH HAPPENS <span class="headline-orange">IN FRONT OF YOU</span>
+        </h2>
+        <p id="s3-subtext" class="subtext" style="font-size: 26px;">
+          50 Rolls &rarr; Coldcard SHA-256 &rarr; 12 Words | 99 Rolls &rarr; 24 Words
+        </p>
+        <div id="s3-cards" class="card-grid">
+          <div class="tactical-card tactical-card-active">
+            <div class="card-title">&#9858; DICE MODE</div>
+            <p class="card-desc">Standard Coldcard D-6 derivation. Cryptographically identical to terminal sha256sum.</p>
+          </div>
+          <div class="tactical-card">
+            <div class="card-title">&#9711; COIN MODE</div>
+            <p class="card-desc">128 or 256 physical flips as raw binary entropy. Checksum calculated effortlessly.</p>
+          </div>
+          <div class="tactical-card">
+            <div class="card-title">&#128274; ACTIVE MEMZERO</div>
+            <p class="card-desc">Zero flash persistence. All keys and entropy scrubbed instantly from RAM on exit.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Scene 4: Verification & Outro (14.5s - 20.0s) -->
+      <section id="scene-4" class="clip" data-start="14.5" data-duration="5.5">
+        <div class="ambient-glow"></div>
+        <div id="s4-logo" class="logo-frame">
+          <img class="logo-img" src="assets/seeder_logo.jpg" alt="SEEDER Logo" />
+        </div>
+        <h1 id="s4-title" class="headline-massive" style="font-size: 64px; margin-bottom: 8px;">
+          SEEDER
+        </h1>
+        <p id="s4-tagline" class="subtext" style="color: #f7931a; font-weight: 700; font-size: 32px; letter-spacing: 1px; margin-bottom: 24px;">
+          Don&apos;t Trust. Roll The Dice.
+        </p>
+        <div id="s4-term" class="terminal-box">
+          <div class="terminal-header">
+            <div class="term-dot"></div>
+            <div class="term-dot"></div>
+            <div class="term-dot"></div>
+          </div>
+          <div class="term-line">$ printf &apos;3141592653589793...&apos; | sha256sum</div>
+          <div class="term-result">&#10003; 100% Verified Match: Offline BIP-39 Derivation Confirmed</div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const tl = gsap.timeline({ paused: true });
+
+      // Scene 1 animations
+      tl.from("#s1-badge", { y: -30, opacity: 0, duration: 0.6, ease: "power3.out" }, 0.2);
+      tl.from("#s1-headline", { scale: 0.9, opacity: 0, duration: 0.8, ease: "power4.out" }, 0.4);
+      tl.from("#s1-subtext", { y: 20, opacity: 0, duration: 0.6, ease: "power2.out" }, 1.0);
+
+      // Scene 2 animations
+      tl.from("#s2-badge", { y: -20, opacity: 0, duration: 0.5, ease: "power3.out" }, 4.1);
+      tl.from("#s2-card", { scale: 0.85, opacity: 0, duration: 0.8, ease: "back.out(1.4)" }, 4.3);
+      tl.from("#s2-badges .feature-badge", {
+        y: 30,
+        opacity: 0,
+        duration: 0.5,
+        stagger: 0.2,
+        ease: "power3.out"
+      }, 5.0);
+
+      // Scene 3 animations
+      tl.from("#s3-badge", { y: -20, opacity: 0, duration: 0.5, ease: "power3.out" }, 9.1);
+      tl.from("#s3-headline", { y: -30, opacity: 0, duration: 0.7, ease: "power3.out" }, 9.3);
+      tl.from("#s3-subtext", { opacity: 0, duration: 0.5, ease: "power2.out" }, 9.7);
+      tl.from("#s3-cards .tactical-card", {
+        y: 40,
+        opacity: 0,
+        duration: 0.6,
+        stagger: 0.25,
+        ease: "power3.out"
+      }, 10.0);
+
+      // Scene 4 animations
+      tl.from("#s4-logo", { scale: 0.5, opacity: 0, duration: 0.8, ease: "back.out(1.5)" }, 14.7);
+      tl.from("#s4-title", { y: 20, opacity: 0, duration: 0.5, ease: "power3.out" }, 15.2);
+      tl.from("#s4-tagline", { opacity: 0, duration: 0.5, ease: "power2.out" }, 15.6);
+      tl.from("#s4-term", { y: 30, opacity: 0, duration: 0.6, ease: "power3.out" }, 16.0);
+
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

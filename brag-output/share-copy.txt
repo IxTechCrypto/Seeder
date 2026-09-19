@@ -1,0 +1,5 @@
+Never trust silicon to generate your Bitcoin keys.
+
+SEEDER is an open-source, air-gapped sovereign seed generator built on LilyGO ESP32 hardware with zero silicon RNG. You provide 100% of the entropy through physical coin flips or dice rolls—and if the raw hexadecimal entropy doesn't match your manual offline SHA-256 math, you discard the device.
+
+Built with PlatformIO, C++, and a sovereign tactical UI.
