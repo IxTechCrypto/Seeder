@@ -1,6 +1,6 @@
 """
-Seeder Flasher - Torii Cyberpunk Tactical UI for LilyGO Hardware
-Neo-Tokyo / Cyber-Shrine Aesthetic (鳥居 Torii Gateway)
+Seeder Flasher - Clean Cyberpunk Hardware Installer UI
+Designed to match the high-tech Torii / Bitaxe clean cyber HUD aesthetic.
 """
 
 import sys
@@ -21,165 +21,243 @@ if sys.stderr is None:
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import engine
 
-# Palette - Torii Cyber-Shrine Neo-Tokyo Theme
-BG_VOID       = "#07080d"   # Deepest obsidian void
-BG_CARD       = "#0f121a"   # Shinto obsidian card
-BG_INPUT      = "#0a0c12"   # Recessed terminal input
-BORDER_DARK   = "#1f2638"   # Subtle structural border
-BORDER_GLOW   = "#2c364e"   # Card highlight
-TORII_RED     = "#ff2a5f"   # Vibrant neon Torii vermilion / crimson
-TORII_RED_DIM = "#80122e"   # Deep vermilion shadow
-NEON_CYAN     = "#00f0ff"   # Holographic electric cyan
-NEON_CYAN_DIM = "#00626b"   # Dim cyan conduit
-CYBER_GOLD    = "#ffb700"   # Sacred cyber amber / gold
-MATRIX_GREEN  = "#00ff9d"   # Quantum link verified green
-TEXT_WHITE    = "#f0f6fc"   # High-contrast luminous white
-TEXT_MUTED    = "#7a8498"   # Secondary telemetry gray
-TEXT_CRIMSON  = "#ff5577"   # Warning crimson
+# Palette - Clean Torii Cyberpunk Theme
+BG_MAIN       = "#06080e"   # Deep obsidian
+BG_PANEL      = "#0b101a"   # Card container background
+BG_TABLE      = "#080c14"   # Table background
+BG_ROW_EVEN   = "#080c14"   # Alternating row
+BG_ROW_ODD    = "#0b101a"   # Alternating row
+BG_ROW_HOVER  = "#121b2c"   # Row hover state
+BG_ROW_SEL    = "#15243c"   # Selected row background
+BORDER_CYAN   = "#00f0ff"   # Electric neon cyan
+BORDER_DARK   = "#182338"   # Subtle structural border
+NEON_CYAN     = "#00f0ff"   # Primary cyan accent
+NEON_CYAN_DIM = "#007a82"   # Dim cyan
+TEXT_WHITE    = "#f0f6fc"   # Bright white text
+TEXT_MUTED    = "#687792"   # Steel blue-gray
+TEXT_DARK     = "#06080e"   # Dark button text
+GREEN_ACTIVE  = "#00ff9d"   # Link verified green
+AMBER_WARN    = "#ffaa00"   # Warning amber
 
 
-class ToriiBanner(tk.Canvas):
-    """Luminous Cyber-Shrine Torii Gate Header Banner."""
-    def __init__(self, parent, width=700, height=84, **kwargs):
-        super().__init__(parent, width=width, height=height, bg=BG_VOID, highlightthickness=0, **kwargs)
+class HeaderBanner(tk.Canvas):
+    """Top banner with slanted slashes and bold glowing title."""
+    def __init__(self, parent, width=800, height=64, **kwargs):
+        super().__init__(parent, width=width, height=height, bg=BG_MAIN, highlightthickness=0, **kwargs)
         self.w = width
         self.h = height
-        self.status_text = "待機 // STANDBY"
-        self.status_color = TEXT_MUTED
-        self.draw()
-
-    def set_status(self, text, color):
-        self.status_text = text
-        self.status_color = color
         self.draw()
 
     def draw(self):
         self.delete("all")
-        # 1. Subtle background grid / scanlines
-        for y in range(0, self.h, 6):
-            self.create_line(0, y, self.w, y, fill="#0b0e16", width=1)
+        # 5 slanted slashes in top left
+        for i in range(5):
+            x = 24 + i * 11
+            self.create_line(x, 24, x + 8, 12, fill=NEON_CYAN, width=3)
 
-        # 2. Left side: Stylized Vector Torii Gate
-        # Dimensions & anchor
-        bx = 20
-        by = 12
+        # Micro icon: cyber chip
+        cx = 24 + 5 * 11 + 16
+        cy = 38
+        self.create_rectangle(cx, cy - 10, cx + 18, cy + 8, outline=NEON_CYAN, width=2, fill="#0c1524")
+        self.create_line(cx + 4, cy - 10, cx + 4, cy - 13, fill=NEON_CYAN, width=1)
+        self.create_line(cx + 9, cy - 10, cx + 9, cy - 13, fill=NEON_CYAN, width=1)
+        self.create_line(cx + 14, cy - 10, cx + 14, cy - 13, fill=NEON_CYAN, width=1)
+        self.create_line(cx + 4, cy + 8, cx + 4, cy + 11, fill=NEON_CYAN, width=1)
+        self.create_line(cx + 9, cy + 8, cx + 9, cy + 11, fill=NEON_CYAN, width=1)
+        self.create_line(cx + 14, cy + 8, cx + 14, cy + 11, fill=NEON_CYAN, width=1)
+        self.create_rectangle(cx + 6, cy - 4, cx + 12, cy + 2, fill=NEON_CYAN, outline="")
 
-        # Kasagi (Top curved lintel with upturned tips)
-        kasagi = [
-            bx, by + 12,
-            bx + 6, by + 5,
-            bx + 40, by + 3,
-            bx + 74, by + 5,
-            bx + 80, by + 12,
-            bx + 76, by + 16,
-            bx + 40, by + 12,
-            bx + 4, by + 16
+        # Title: SEEDER FLASHER
+        self.create_text(
+            cx + 28, cy - 1, anchor=tk.W,
+            text="SEEDER FLASHER", fill=NEON_CYAN, font=("Segoe UI", 17, "bold")
+        )
+
+
+class StepperBar(tk.Canvas):
+    """4-step workflow indicator bar."""
+    def __init__(self, parent, width=800, height=44, **kwargs):
+        super().__init__(parent, width=width, height=height, bg=BG_MAIN, highlightthickness=0, **kwargs)
+        self.w = width
+        self.h = height
+        self.active_step = 1
+        self.draw()
+
+    def set_step(self, step):
+        self.active_step = step
+        self.draw()
+
+    def draw(self):
+        self.delete("all")
+        # Card container with dark border
+        pad_x = 24
+        cw = self.w - pad_x * 2
+        ch = 38
+        y = 2
+
+        self.create_rectangle(pad_x, y, pad_x + cw, y + ch, fill=BG_PANEL, outline=BORDER_DARK, width=1)
+
+        steps = [
+            (1, "DISCOVERY"),
+            (2, "CONFIGURE & REVIEW"),
+            (3, "DEPLOYING"),
+            (4, "MONITOR")
         ]
-        self.create_polygon(kasagi, fill=TORII_RED, outline="#ff7597", width=1)
 
-        # Shimaki (Secondary lintel directly below Kasagi)
-        self.create_polygon(
-            bx + 10, by + 16,
-            bx + 70, by + 16,
-            bx + 68, by + 23,
-            bx + 12, by + 23,
-            fill=TORII_RED_DIM, outline=TORII_RED, width=1
-        )
+        total_steps = len(steps)
+        step_width = cw / total_steps
 
-        # Hashira (Two main pillars)
-        # Left pillar
-        self.create_polygon(
-            bx + 20, by + 21,
-            bx + 27, by + 21,
-            bx + 30, by + 68,
-            bx + 19, by + 68,
-            fill=TORII_RED, outline=NEON_CYAN_DIM, width=1
-        )
-        # Right pillar
-        self.create_polygon(
-            bx + 53, by + 21,
-            bx + 60, by + 21,
-            bx + 61, by + 68,
-            bx + 50, by + 68,
-            fill=TORII_RED, outline=NEON_CYAN_DIM, width=1
-        )
+        for i, (num, label) in enumerate(steps):
+            cx = pad_x + step_width * i + step_width / 2
+            cy = y + ch / 2
 
-        # Nuki (Tie-beam)
-        self.create_rectangle(bx + 12, by + 32, bx + 68, by + 38, fill=TORII_RED, outline=NEON_CYAN, width=1)
+            is_active = (self.active_step >= num)
+            is_current = (self.active_step == num)
 
-        # Gakuzuka (Center tablet between lintel and tie-beam)
-        self.create_rectangle(bx + 36, by + 22, bx + 44, by + 32, fill=BG_CARD, outline=NEON_CYAN, width=1)
-        self.create_text(bx + 40, by + 27, text="門", fill=NEON_CYAN, font=("Segoe UI", 6, "bold"))
+            col = NEON_CYAN if (is_current or is_active) else TEXT_MUTED
 
-        # Portal Core (Center of Torii - glowing quantum diamond)
-        diamond = [
-            bx + 40, by + 42,
-            bx + 47, by + 51,
-            bx + 40, by + 60,
-            bx + 33, by + 51
+            # Number badge
+            num_str = {1: "①", 2: "②", 3: "③", 4: "④"}.get(num, str(num))
+            self.create_text(
+                cx - 42, cy,
+                text=num_str, fill=col, font=("Segoe UI", 11, "bold")
+            )
+
+            # Step title
+            self.create_text(
+                cx + 8, cy,
+                text=label, fill=col, font=("Consolas", 9, "bold")
+            )
+
+            # Connecting line to next step
+            if i < total_steps - 1:
+                lx1 = pad_x + step_width * (i + 1) - 24
+                lx2 = pad_x + step_width * (i + 1) + 24
+                line_col = NEON_CYAN_DIM if (self.active_step > num) else "#182338"
+                self.create_line(lx1, cy, lx2, cy, fill=line_col, width=1)
+
+
+class CyberTable(tk.Frame):
+    """Clean cyber data table displaying connected devices with selectable rows."""
+    def __init__(self, parent, on_select_callback, **kwargs):
+        super().__init__(parent, bg=BG_TABLE, bd=1, relief=tk.SOLID, highlightthickness=1, highlightbackground=BORDER_DARK, **kwargs)
+        self.on_select_callback = on_select_callback
+        self.rows_data = []
+        self.row_cells = []  # list of lists of labels
+        self.selected_idx = -1
+
+        # Configure columns
+        self.columnconfigure(0, minsize=90)
+        self.columnconfigure(1, minsize=120)
+        self.columnconfigure(2, minsize=180)
+        self.columnconfigure(3, weight=1, minsize=240)
+        self.columnconfigure(4, minsize=140)
+
+        self._build_header()
+
+    def _build_header(self):
+        cols = [
+            (0, "PORT"),
+            (1, "VID:PID"),
+            (2, "MANUFACTURER"),
+            (3, "PRODUCT"),
+            (4, "STATUS")
         ]
-        self.create_polygon(diamond, fill="#00353d", outline=NEON_CYAN, width=1)
-        self.create_line(bx + 40, by + 45, bx + 40, by + 57, fill=TEXT_WHITE, width=1)
-        self.create_line(bx + 35, by + 51, bx + 45, by + 51, fill=TEXT_WHITE, width=1)
+        for col_idx, name in cols:
+            lbl = tk.Label(
+                self, text=name,
+                font=("Consolas", 9, "bold"), fg=NEON_CYAN, bg="#0d1422",
+                anchor=tk.W, padx=12, pady=7
+            )
+            lbl.grid(row=0, column=col_idx, sticky="nsew")
 
-        # Pillar stone bases
-        self.create_rectangle(bx + 16, by + 66, bx + 33, by + 72, fill="#1c2233", outline=BORDER_DARK, width=1)
-        self.create_rectangle(bx + 47, by + 66, bx + 64, by + 72, fill="#1c2233", outline=BORDER_DARK, width=1)
+        # Thin header underline
+        div = tk.Frame(self, height=1, bg="#19253b")
+        div.grid(row=1, column=0, columnspan=5, sticky="ew")
 
-        # 3. Typography: Title & Cyber-Shrine Subtitle
-        tx = bx + 96
-        self.create_text(
-            tx, by + 18, anchor=tk.W,
-            text="SEEDER // 鳥居",
-            fill=TEXT_WHITE, font=("Consolas", 20, "bold")
-        )
-        self.create_text(
-            tx + 185, by + 19, anchor=tk.W,
-            text="TORII CYBER-GATEWAY",
-            fill=TORII_RED, font=("Consolas", 11, "bold")
-        )
-        self.create_text(
-            tx, by + 44, anchor=tk.W,
-            text="「 SOVEREIGN COLD-STORAGE HARDWARE INSTALLER · 秘密鍵の聖域 」",
-            fill=TEXT_MUTED, font=("Consolas", 9, "bold")
-        )
-        self.create_text(
-            tx, by + 60, anchor=tk.W,
-            text="STATUS: QUANTUM CONDUIT READY // 接続待機中",
-            fill=NEON_CYAN_DIM, font=("Consolas", 8)
-        )
+    def set_data(self, ports):
+        self.rows_data = ports
 
-        # 4. Right side: High-Tech Torii Status Badge
-        badge_w = 210
-        badge_h = 36
-        badge_x = self.w - badge_w - 4
-        badge_y = by + 14
+        # Remove old data rows (rows >= 2)
+        for slave in self.grid_slaves():
+            info = slave.grid_info()
+            if int(info.get("row", 0)) >= 2:
+                slave.destroy()
 
-        # Chamfered badge frame
-        r = 6
-        self.create_polygon(
-            badge_x + r, badge_y,
-            badge_x + badge_w - r, badge_y,
-            badge_x + badge_w, badge_y + r,
-            badge_x + badge_w, badge_y + badge_h - r,
-            badge_x + badge_w - r, badge_y + badge_h,
-            badge_x + r, badge_y + badge_h,
-            badge_x, badge_y + badge_h - r,
-            badge_x, badge_y + r,
-            fill=BG_CARD, outline=self.status_color, width=1
-        )
-        # Pulsing beacon LED
-        self.create_oval(badge_x + 14, badge_y + 13, badge_x + 24, badge_y + 23, fill=self.status_color, outline="")
-        self.create_text(
-            badge_x + 112, badge_y + 18,
-            text=self.status_text, fill=self.status_color, font=("Consolas", 9, "bold")
-        )
+        self.row_cells = []
+
+        if not ports:
+            empty_lbl = tk.Label(
+                self, text="No serial devices detected. Connect a USB device and click 'DETECT USB DEVICES'.",
+                font=("Consolas", 9), fg=TEXT_MUTED, bg=BG_TABLE, pady=24
+            )
+            empty_lbl.grid(row=2, column=0, columnspan=5, sticky="ew")
+            return
+
+        for idx, p in enumerate(ports):
+            r_num = 2 + idx
+            bg = BG_ROW_EVEN if idx % 2 == 0 else BG_ROW_ODD
+
+            vals = [
+                (0, p.port, TEXT_WHITE),
+                (1, p.vid_str, TEXT_WHITE),
+                (2, p.manufacturer, TEXT_WHITE),
+                (3, p.product, TEXT_WHITE),
+                (4, p.status, NEON_CYAN if p.status == "flash-candidate" else TEXT_MUTED)
+            ]
+
+            cells = []
+            for col_idx, text, col in vals:
+                lbl = tk.Label(
+                    self, text=text, font=("Consolas", 9),
+                    fg=col, bg=bg, anchor=tk.W, padx=12, pady=7,
+                    cursor="hand2"
+                )
+                lbl.grid(row=r_num, column=col_idx, sticky="nsew")
+                cells.append(lbl)
+
+                # Event bindings
+                lbl.bind("<Button-1>", lambda e, i=idx: self._select_row(i))
+                lbl.bind("<Enter>", lambda e, i=idx: self._on_hover(i, True))
+                lbl.bind("<Leave>", lambda e, i=idx: self._on_hover(i, False))
+
+            self.row_cells.append(cells)
+
+        # Auto-select the first candidate or first row
+        if self.selected_idx < 0 or self.selected_idx >= len(ports):
+            best_idx = 0
+            for i, p in enumerate(ports):
+                if p.status == "flash-candidate":
+                    best_idx = i
+                    break
+            self._select_row(best_idx, fire_callback=True)
+        else:
+            self._highlight_selected()
+
+    def _on_hover(self, idx, entering):
+        if idx == self.selected_idx or idx >= len(self.row_cells):
+            return
+        bg = BG_ROW_HOVER if entering else (BG_ROW_EVEN if idx % 2 == 0 else BG_ROW_ODD)
+        for l in self.row_cells[idx]:
+            l.config(bg=bg)
+
+    def _select_row(self, idx, fire_callback=True):
+        self.selected_idx = idx
+        self._highlight_selected()
+        if fire_callback and 0 <= idx < len(self.rows_data):
+            self.on_select_callback(self.rows_data[idx])
+
+    def _highlight_selected(self):
+        for i, cells in enumerate(self.row_cells):
+            bg = BG_ROW_SEL if (i == self.selected_idx) else (BG_ROW_EVEN if i % 2 == 0 else BG_ROW_ODD)
+            for l in cells:
+                l.config(bg=bg)
 
 
-class ToriiCyberButton(tk.Canvas):
-    """Chamfered Cyberpunk Action Button with Torii Vermilion and Cyan Neon."""
-    def __init__(self, parent, text, command, width=692, height=52, **kwargs):
-        super().__init__(parent, width=width, height=height, bg=BG_VOID, highlightthickness=0, **kwargs)
+class CleanCyberButton(tk.Canvas):
+    """High-tech solid cyan action button matching the USB DEVICE FLASH button."""
+    def __init__(self, parent, text, command, width=752, height=44, **kwargs):
+        super().__init__(parent, width=width, height=height, bg=BG_MAIN, highlightthickness=0, **kwargs)
         self.text = text
         self.command = command
         self.w = width
@@ -215,63 +293,36 @@ class ToriiCyberButton(tk.Canvas):
 
     def draw(self):
         self.delete("all")
-        c = 10  # 45-degree chamfer cut size
-
         if not self.enabled:
-            bg_col = "#12151f"
-            border_col = "#242c3d"
-            text_col = "#505a70"
-            bracket_col = "#30394d"
+            bg_col = "#141c2c"
+            text_col = "#506078"
+            outline_col = "#182338"
         elif self.hover:
-            bg_col = "#2a0612"         # Deep glowing vermilion backing
-            border_col = TORII_RED
-            text_col = TEXT_WHITE
-            bracket_col = NEON_CYAN
+            bg_col = "#33f5ff"
+            text_col = TEXT_DARK
+            outline_col = "#ffffff"
         else:
-            bg_col = "#150810"         # Dark crimson obsidian
-            border_col = TORII_RED_DIM
-            text_col = TORII_RED
-            bracket_col = TORII_RED
+            bg_col = NEON_CYAN
+            text_col = TEXT_DARK
+            outline_col = NEON_CYAN
 
-        # Chamfered main polygon
-        poly = [
-            c, 0,
-            self.w - c, 0,
-            self.w, c,
-            self.w, self.h - c,
-            self.w - c, self.h,
-            c, self.h,
-            0, self.h - c,
-            0, c
-        ]
-        self.create_polygon(poly, fill=bg_col, outline=border_col, width=2)
-
-        # High-tech Cyber Brackets on corners
-        if self.enabled:
-            # Top-left
-            self.create_line(0, c + 4, 0, c, c, 0, c + 4, 0, fill=bracket_col, width=2)
-            # Top-right
-            self.create_line(self.w - (c + 4), 0, self.w - c, 0, self.w, c, self.w, c + 4, fill=bracket_col, width=2)
-            # Bottom-right
-            self.create_line(self.w, self.h - (c + 4), self.w, self.h - c, self.w - c, self.h, self.w - (c + 4), self.h, fill=bracket_col, width=2)
-            # Bottom-left
-            self.create_line(c + 4, self.h, c, self.h, 0, self.h - c, 0, self.h - (c + 4), fill=bracket_col, width=2)
-
-            # Center neon energy line across bottom edge
-            glow_line_col = NEON_CYAN if self.hover else TORII_RED_DIM
-            self.create_line(c + 20, self.h - 3, self.w - (c + 20), self.h - 3, fill=glow_line_col, width=2)
-
+        # Clean rounded block
+        r = 5
+        self.create_polygon(
+            r, 0, self.w - r, 0, self.w, r, self.w, self.h - r,
+            self.w - r, self.h, r, self.h, 0, self.h - r, 0, r,
+            fill=bg_col, outline=outline_col, width=1
+        )
         self.create_text(
             self.w // 2, self.h // 2,
-            text=self.text, fill=text_col,
-            font=("Consolas", 12, "bold")
+            text=self.text, fill=text_col, font=("Segoe UI", 11, "bold")
         )
 
 
-class ToriiProgressBar(tk.Canvas):
-    """Cyber-Conduit Energy Progress Bar."""
-    def __init__(self, parent, width=692, height=16, **kwargs):
-        super().__init__(parent, width=width, height=height, bg=BG_INPUT, highlightthickness=1, highlightbackground=BORDER_DARK, **kwargs)
+class SegmentedProgressBar(tk.Canvas):
+    """Sleek segmented progress bar in glowing cyan."""
+    def __init__(self, parent, width=752, height=14, **kwargs):
+        super().__init__(parent, width=width, height=height, bg="#080c14", highlightthickness=1, highlightbackground=BORDER_DARK, **kwargs)
         self.w = width
         self.h = height
         self.percent = 0
@@ -283,28 +334,21 @@ class ToriiProgressBar(tk.Canvas):
 
     def draw(self):
         self.delete("all")
-        # Empty background grid ticks
-        for x in range(16, self.w, 16):
-            self.create_line(x, 0, x, self.h, fill="#121622", width=1)
-
         fill_w = int((self.w - 4) * (self.percent / 100.0))
         if fill_w > 0:
-            # Dual gradient aesthetic: vermilion fading to electric cyan
             self.create_rectangle(2, 2, 2 + fill_w, self.h - 2, fill=NEON_CYAN, outline="")
-            # Conduit tick marks
+            # Segment ticks
             for x in range(16, fill_w, 16):
-                self.create_line(2 + x, 2, 2 + x, self.h - 2, fill="#004e54", width=1)
-            # Leading energy spark
-            self.create_line(2 + fill_w - 2, 2, 2 + fill_w - 2, self.h - 2, fill=TEXT_WHITE, width=2)
+                self.create_line(2 + x, 2, 2 + x, self.h - 2, fill="#005057", width=1)
 
 
 class SeederFlasherApp(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("SEEDER // 鳥居 TORII CYBER-GATEWAY")
-        self.geometry("760x720")
-        self.minsize(720, 680)
-        self.configure(bg=BG_VOID)
+        self.title("SEEDER FLASHER")
+        self.geometry("860x780")
+        self.minsize(820, 720)
+        self.configure(bg=BG_MAIN)
 
         icon_path = engine.get_resource_path("icon.ico")
         if os.path.exists(icon_path):
@@ -323,125 +367,137 @@ class SeederFlasherApp(tk.Tk):
         self._start_port_scanner()
 
     def _build_ui(self):
-        # 1. Torii Gate Header Banner
-        self.banner = ToriiBanner(self, width=712, height=84)
-        self.banner.pack(fill=tk.X, padx=24, pady=(16, 6))
+        # Outer Border Container matching the Torii cyber frame aesthetic
+        outer = tk.Frame(self, bg=BG_MAIN, highlightthickness=2, highlightbackground=BORDER_CYAN)
+        outer.pack(fill=tk.BOTH, expand=True, padx=12, pady=12)
 
-        # Neon Divider Line
-        div = tk.Frame(self, height=2, bg=BORDER_DARK)
-        div.pack(fill=tk.X, padx=24, pady=(2, 10))
+        # 1. Top Header Banner
+        self.header = HeaderBanner(outer, width=812, height=54)
+        self.header.pack(fill=tk.X, padx=18, pady=(12, 2))
 
-        # 2. Hardware Connection Card
-        card = tk.Frame(self, bg=BG_CARD, bd=1, relief=tk.SOLID, highlightthickness=1, highlightbackground=BORDER_DARK)
-        card.pack(fill=tk.X, padx=24, pady=6)
+        # 2. Stepper Bar
+        self.stepper = StepperBar(outer, width=812, height=44)
+        self.stepper.pack(fill=tk.X, padx=18, pady=(4, 10))
 
-        card_pad = tk.Frame(card, bg=BG_CARD)
-        card_pad.pack(fill=tk.X, padx=16, pady=12)
+        # 3. Sub-Navigation Tabs Row
+        tab_row = tk.Frame(outer, bg=BG_MAIN)
+        tab_row.pack(fill=tk.X, padx=18, pady=(0, 10))
 
-        card_title = tk.Label(
-            card_pad, text="「 ⛩️ ポート検出 / HARDWARE CONNECTION GATEWAY 」",
-            font=("Consolas", 10, "bold"), fg=TORII_RED, bg=BG_CARD
+        # Inactive LAN Miner Scan Tab
+        lan_btn = tk.Label(
+            tab_row, text="LAN MINER SCAN", font=("Segoe UI", 9, "bold"),
+            fg=TEXT_MUTED, bg="#0c121e", padx=16, pady=8, bd=1, relief=tk.SOLID
         )
-        card_title.pack(anchor=tk.W, pady=(0, 8))
+        lan_btn.pack(side=tk.LEFT, padx=(0, 8))
 
-        # Port Selection Row
-        port_row = tk.Frame(card_pad, bg=BG_CARD)
-        port_row.pack(fill=tk.X, pady=4)
-
-        p_lbl = tk.Label(
-            port_row, text="TARGET PORT:",
-            font=("Consolas", 9, "bold"), fg=NEON_CYAN, bg=BG_CARD, width=14, anchor=tk.W
+        # Active USB Device Flash Tab (Solid Cyan)
+        usb_tab = tk.Label(
+            tab_row, text="USB DEVICE FLASH", font=("Segoe UI", 9, "bold"),
+            fg=TEXT_DARK, bg=NEON_CYAN, padx=16, pady=8, bd=1, relief=tk.SOLID
         )
-        p_lbl.pack(side=tk.LEFT)
+        usb_tab.pack(side=tk.LEFT)
 
-        self.port_combo = ttk.Combobox(port_row, state="readonly", font=("Consolas", 10))
-        self.port_combo.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 10))
-        self.port_combo.bind("<<ComboboxSelected>>", self._on_port_selected)
+        # 4. Action Button Row: DETECT USB DEVICES
+        action_row = tk.Frame(outer, bg=BG_MAIN)
+        action_row.pack(fill=tk.X, padx=18, pady=(4, 6))
 
-        self.refresh_btn = tk.Button(
-            port_row, text="⟳ RESCAN // 再検出", font=("Consolas", 9, "bold"),
-            bg="#1b2233", fg=TEXT_WHITE, activebackground=TORII_RED_DIM, activeforeground=TEXT_WHITE,
-            bd=1, relief=tk.FLAT, padx=12, pady=4, cursor="hand2", command=self._manual_scan
+        self.detect_btn = tk.Button(
+            action_row, text="DETECT USB DEVICES", font=("Segoe UI", 9, "bold"),
+            fg=NEON_CYAN, bg="#101726", activebackground=NEON_CYAN, activeforeground=TEXT_DARK,
+            bd=1, relief=tk.SOLID, padx=14, pady=6, cursor="hand2", command=self._manual_scan
         )
-        self.refresh_btn.pack(side=tk.RIGHT)
+        self.detect_btn.pack(side=tk.LEFT)
 
-        # Hardware Model Selection Row
-        model_row = tk.Frame(card_pad, bg=BG_CARD)
-        model_row.pack(fill=tk.X, pady=(10, 4))
-
-        m_lbl = tk.Label(
-            model_row, text="DEVICE MODEL:",
-            font=("Consolas", 9, "bold"), fg=NEON_CYAN, bg=BG_CARD, width=14, anchor=tk.W
+        # 5. Explanatory Subtext
+        subtext = (
+            '"flash-candidate" devices match the ESP32-S3\'s generic default USB identity (LilyGO / AxeOS). '
+            '"raw-installed" devices are running custom firmware. Click any device to flash or re-flash.'
         )
-        m_lbl.pack(side=tk.LEFT)
+        sub_lbl = tk.Label(
+            outer, text=subtext, font=("Consolas", 8),
+            fg=TEXT_MUTED, bg=BG_MAIN, justify=tk.LEFT, anchor=tk.W, wraplength=800
+        )
+        sub_lbl.pack(fill=tk.X, padx=18, pady=(2, 8))
+
+        # 6. Interactive Device Table
+        self.table = CyberTable(outer, on_select_callback=self._on_table_row_selected)
+        self.table.pack(fill=tk.X, padx=18, pady=(0, 10))
+
+        # 7. Hardware Profile Selection
+        profile_frame = tk.Frame(outer, bg=BG_PANEL, bd=1, relief=tk.SOLID, highlightthickness=1, highlightbackground=BORDER_DARK)
+        profile_frame.pack(fill=tk.X, padx=18, pady=(0, 8))
+
+        p_pad = tk.Frame(profile_frame, bg=BG_PANEL)
+        p_pad.pack(fill=tk.X, padx=14, pady=8)
+
+        prof_lbl = tk.Label(
+            p_pad, text="FIRMWARE TARGET:", font=("Consolas", 9, "bold"),
+            fg=NEON_CYAN, bg=BG_PANEL
+        )
+        prof_lbl.pack(side=tk.LEFT, padx=(0, 14))
 
         self.rb_s3 = tk.Radiobutton(
-            model_row, text="LilyGO T-Display-S3 (ESP32-S3 · 16MB · 320x170)",
+            p_pad, text="LilyGO T-Display-S3 (ESP32-S3 · 16MB Flash · 320x170)",
             variable=self.target_var, value="tdisplay-s3",
-            font=("Segoe UI", 9), fg=TEXT_WHITE, bg=BG_CARD, selectcolor=BG_INPUT,
-            activebackground=BG_CARD, activeforeground=TORII_RED
+            font=("Segoe UI", 9), fg=TEXT_WHITE, bg=BG_PANEL, selectcolor="#080d16",
+            activebackground=BG_PANEL, activeforeground=NEON_CYAN
         )
         self.rb_s3.pack(side=tk.LEFT, padx=(0, 16))
 
         self.rb_t = tk.Radiobutton(
-            model_row, text="LilyGO TTGO T-Display (ESP32 · 4MB · 240x135)",
+            p_pad, text="LilyGO TTGO T-Display (ESP32 · 4MB Flash · 240x135)",
             variable=self.target_var, value="tdisplay",
-            font=("Segoe UI", 9), fg=TEXT_WHITE, bg=BG_CARD, selectcolor=BG_INPUT,
-            activebackground=BG_CARD, activeforeground=TORII_RED
+            font=("Segoe UI", 9), fg=TEXT_WHITE, bg=BG_PANEL, selectcolor="#080d16",
+            activebackground=BG_PANEL, activeforeground=NEON_CYAN
         )
         self.rb_t.pack(side=tk.LEFT)
 
-        # 3. Action Button
-        action_frame = tk.Frame(self, bg=BG_VOID)
-        action_frame.pack(fill=tk.X, padx=24, pady=(10, 8))
+        # 8. Flash Action Button
+        action_box = tk.Frame(outer, bg=BG_MAIN)
+        action_box.pack(fill=tk.X, padx=18, pady=(4, 6))
 
-        self.flash_btn = ToriiCyberButton(
-            action_frame,
-            text="⚡ [ FLASH SEEDER FIRMWARE // 書込開始 ] ⚡",
-            command=self._start_flash, width=712, height=52
+        self.flash_btn = CleanCyberButton(
+            action_box, text="⚡ FLASH SELECTED DEVICE",
+            command=self._start_flash, width=812, height=44
         )
         self.flash_btn.pack(fill=tk.X)
 
-        # 4. Progress Section
-        prog_frame = tk.Frame(self, bg=BG_VOID)
-        prog_frame.pack(fill=tk.X, padx=24, pady=(4, 8))
+        # 9. Progress Bar & Status Line
+        prog_box = tk.Frame(outer, bg=BG_MAIN)
+        prog_box.pack(fill=tk.X, padx=18, pady=(2, 6))
 
-        self.prog_bar = ToriiProgressBar(prog_frame, width=712, height=16)
+        self.prog_bar = SegmentedProgressBar(prog_box, width=812, height=12)
         self.prog_bar.pack(fill=tk.X)
 
-        self.stage_lbl = tk.Label(
-            prog_frame,
-            text="STATUS: READY // Connect LilyGO hardware and initiate flash sequence",
-            font=("Consolas", 9), fg=TEXT_MUTED, bg=BG_VOID
+        self.status_lbl = tk.Label(
+            prog_box, text="READY: Select a device row above to begin flashing.",
+            font=("Consolas", 9), fg=TEXT_MUTED, bg=BG_MAIN
         )
-        self.stage_lbl.pack(anchor=tk.W, pady=(5, 0))
+        self.status_lbl.pack(anchor=tk.W, pady=(4, 0))
 
-        # 5. Terminal Console Card
-        console_card = tk.Frame(self, bg=BG_CARD, bd=1, relief=tk.SOLID, highlightthickness=1, highlightbackground=BORDER_DARK)
-        console_card.pack(fill=tk.BOTH, expand=True, padx=24, pady=(4, 18))
+        # 10. Terminal Console Card
+        console_card = tk.Frame(outer, bg=BG_PANEL, bd=1, relief=tk.SOLID, highlightthickness=1, highlightbackground=BORDER_DARK)
+        console_card.pack(fill=tk.BOTH, expand=True, padx=18, pady=(4, 12))
 
-        c_pad = tk.Frame(console_card, bg=BG_CARD)
-        c_pad.pack(fill=tk.BOTH, expand=True, padx=12, pady=10)
+        c_pad = tk.Frame(console_card, bg=BG_PANEL)
+        c_pad.pack(fill=tk.BOTH, expand=True, padx=12, pady=8)
 
-        c_header = tk.Frame(c_pad, bg=BG_CARD)
-        c_header.pack(fill=tk.X, pady=(0, 6))
+        c_head = tk.Frame(c_pad, bg=BG_PANEL)
+        c_head.pack(fill=tk.X, pady=(0, 4))
 
-        c_title = tk.Label(
-            c_header, text="「 📡 テレメトリログ / TELEMETRY TERMINAL 」",
-            font=("Consolas", 9, "bold"), fg=TORII_RED, bg=BG_CARD
-        )
+        c_title = tk.Label(c_head, text="TERMINAL OUTPUT", font=("Consolas", 9, "bold"), fg=TEXT_MUTED, bg=BG_PANEL)
         c_title.pack(side=tk.LEFT)
 
         clear_btn = tk.Button(
-            c_header, text="CLEAR // 消去", font=("Consolas", 8), bg=BG_CARD, fg=TEXT_MUTED,
-            activebackground=BG_CARD, activeforeground=TEXT_WHITE, bd=0, cursor="hand2", command=self._clear_log
+            c_head, text="CLEAR", font=("Consolas", 8), bg=BG_PANEL, fg=TEXT_MUTED,
+            activebackground=BG_PANEL, activeforeground=TEXT_WHITE, bd=0, cursor="hand2", command=self._clear_log
         )
         clear_btn.pack(side=tk.RIGHT)
 
         self.log_text = tk.Text(
-            c_pad, bg=BG_INPUT, fg="#c9d1d9", font=("Consolas", 9),
-            insertbackground=NEON_CYAN, selectbackground="#38101d",
-            relief=tk.FLAT, wrap=tk.WORD, height=10
+            c_pad, bg="#05070c", fg="#cbd5e1", font=("Consolas", 9),
+            insertbackground=NEON_CYAN, selectbackground="#162947",
+            relief=tk.FLAT, wrap=tk.WORD, height=6
         )
         self.log_text.pack(fill=tk.BOTH, expand=True)
 
@@ -449,11 +505,7 @@ class SeederFlasherApp(tk.Tk):
         self.log_text.configure(yscrollcommand=scrollbar.set)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        self._log("⛩️  ============================================================  ⛩️")
-        self._log("    SEEDER // 鳥居 TORII CYBER-GATEWAY v2.0")
-        self._log("    SOVEREIGN BITCOIN COLD-STORAGE HARDWARE CONDUIT")
-        self._log("⛩️  ============================================================  ⛩️")
-        self._log("[*] Quantum bus initialized. Scanning USB-Serial / JTAG matrix...")
+        self._log("Seeder Flasher initialized. Scanning serial ports...")
 
     def _log(self, text):
         self.log_text.insert(tk.END, text + "\n")
@@ -470,7 +522,7 @@ class SeederFlasherApp(tk.Tk):
             while True:
                 if not self.flashing:
                     self.after(0, self._scan_and_update)
-                time.sleep(1.5)
+                time.sleep(2.0)
 
         t = threading.Thread(target=scan_loop, daemon=True)
         t.start()
@@ -481,62 +533,18 @@ class SeederFlasherApp(tk.Tk):
 
         ports = engine.scan_ports()
         self.detected_ports = ports
+        self.table.set_data(ports)
 
-        if not ports:
-            self.port_combo['values'] = ["No COM devices detected"]
-            self.port_combo.current(0)
-            self.selected_port = None
-            self.flash_btn.set_enabled(False)
-            self.banner.set_status("待機 // NO DEVICE", TEXT_MUTED)
-            self.stage_lbl.config(
-                text="STATUS: NO HARDWARE DETECTED // Plug in LilyGO USB cable",
-                fg=TEXT_MUTED
-            )
-            return
-
-        display_values = [p.display_name for p in ports]
-        self.port_combo['values'] = display_values
-
-        # Auto-select best known LilyGO port
-        selected_idx = 0
-        for i, p in enumerate(ports):
-            if p.is_known:
-                selected_idx = i
-                break
-
-        current_text = self.port_combo.get()
-        if current_text not in display_values:
-            self.port_combo.current(selected_idx)
-            self._on_port_selected()
-        else:
-            idx = display_values.index(current_text)
-            self.selected_port = ports[idx]
-            self._update_selection_state()
-
-    def _on_port_selected(self, event=None):
-        idx = self.port_combo.current()
-        if idx >= 0 and idx < len(self.detected_ports):
-            p = self.detected_ports[idx]
-            self.selected_port = p
-            self.target_var.set(p.default_target)
-            self._update_selection_state()
-
-    def _update_selection_state(self):
-        if self.selected_port:
-            p = self.selected_port
-            if p.is_known:
-                self.banner.set_status(f"接続 // {p.port} READY", MATRIX_GREEN)
-                self.stage_lbl.config(
-                    text=f"HARDWARE LINKED: {p.display_name} -> Ready to flash",
-                    fg=MATRIX_GREEN
-                )
-            else:
-                self.banner.set_status(f"接続 // {p.port}", CYBER_GOLD)
-                self.stage_lbl.config(
-                    text=f"GENERIC SERIAL PORT LINKED: {p.display_name}",
-                    fg=CYBER_GOLD
-                )
-            self.flash_btn.set_enabled(True)
+    def _on_table_row_selected(self, port_info):
+        self.selected_port = port_info
+        self.target_var.set(port_info.default_target)
+        self.stepper.set_step(2)
+        self.flash_btn.set_enabled(True)
+        self.flash_btn.set_text(f"⚡ FLASH SELECTED DEVICE ({port_info.port})")
+        self.status_lbl.config(
+            text=f"SELECTED: {port_info.port} [{port_info.product}] -> Ready to flash.",
+            fg=NEON_CYAN
+        )
 
     def _start_flash(self):
         if not self.selected_port or self.flashing:
@@ -546,15 +554,14 @@ class SeederFlasherApp(tk.Tk):
         target = self.target_var.get()
 
         self.flashing = True
+        self.stepper.set_step(3)
         self.flash_btn.set_enabled(False)
-        self.flash_btn.set_text("⚡ [ FLASHING FIRMWARE // 書込処理中... ] ⚡")
-        self.banner.set_status("書込中 // FLASHING", TORII_RED)
-        self.refresh_btn.config(state=tk.DISABLED)
-        self.port_combo.config(state=tk.DISABLED)
+        self.flash_btn.set_text(f"⚡ FLASHING FIRMWARE TO {port}...")
+        self.detect_btn.config(state=tk.DISABLED)
         self.prog_bar.set_percent(0)
 
         self._log("\n" + "=" * 60)
-        self._log(f"⛩️ INITIATING TORII FLASH CONDUIT FOR [{target.upper()}] ON {port}")
+        self._log(f"INITIATING FIRMWARE FLASH: TARGET [{target.upper()}] ON {port}")
         self._log("=" * 60)
 
         def worker():
@@ -572,47 +579,44 @@ class SeederFlasherApp(tk.Tk):
 
     def _on_progress(self, pct, msg):
         self.prog_bar.set_percent(pct)
-        self.stage_lbl.config(text=f"STATUS [{pct}%]: {msg}", fg=NEON_CYAN)
+        self.status_lbl.config(text=f"PROGRESS [{pct}%]: {msg}", fg=NEON_CYAN)
 
     def _on_flash_complete(self, success, error_msg):
         self.flashing = False
-        self.refresh_btn.config(state=tk.NORMAL)
-        self.port_combo.config(state="readonly")
+        self.detect_btn.config(state=tk.NORMAL)
 
         if success:
             self.prog_bar.set_percent(100)
-            self.banner.set_status("完了 // SUCCESS", MATRIX_GREEN)
-            self.flash_btn.set_text("✓ [ FLASH VERIFIED // 書込完了 ] ✓")
-            self.stage_lbl.config(
-                text="FLASH COMPLETE: Device rebooted into sovereign Seeder cold storage!",
-                fg=MATRIX_GREEN
+            self.stepper.set_step(4)
+            self.flash_btn.set_text("✓ FLASH COMPLETED & VERIFIED")
+            self.status_lbl.config(
+                text="SUCCESS: Firmware verified. Device rebooted into Seeder cold-storage!",
+                fg=GREEN_ACTIVE
             )
-            self._log("\n⛩️ [✓] CONDUIT DISENGAGED: HARDWARE IS RUNNING SEEDER FIRMWARE!")
+            self._log("\n[✓] FLASH SUCCESSFUL: Device rebooted into sovereign Seeder wallet.")
             messagebox.showinfo(
-                "Torii Conduit Complete // 書込完了",
-                "Firmware flashed and verified successfully!\n\n"
-                "Your LilyGO device has reset and is now operating as a sovereign Seeder cold-storage wallet."
+                "Flashing Complete",
+                f"Seeder firmware flashed successfully to {self.selected_port.port}!\n\n"
+                "The board has rebooted and is now running Seeder."
             )
         else:
-            self.banner.set_status("障害 // FAILED", TORII_RED)
-            self.flash_btn.set_text("⚠ [ FLASH FAILED // 再試行 ] ⚠")
-            self.stage_lbl.config(
-                text=f"FLASH FAILED: {error_msg}",
-                fg=TEXT_CRIMSON
+            self.flash_btn.set_text("⚠ FLASH FAILED - CLICK TO RETRY")
+            self.status_lbl.config(
+                text=f"ERROR: Flashing failed: {error_msg}",
+                fg="#ff5555"
             )
-            self._log(f"\n⛩️ [!] ERROR: Flashing failed: {error_msg}")
+            self._log(f"\n[!] ERROR: Flashing failed: {error_msg}")
             messagebox.showerror(
-                "Torii Flashing Error // エラー",
-                f"Flashing encountered an error:\n\n{error_msg}\n\n"
-                "Check USB cable connection or try holding the BOOT button while plugging in."
+                "Flashing Error",
+                f"Failed to flash {self.selected_port.port}:\n\n{error_msg}"
             )
 
         self.after(3000, self._reset_flash_btn)
 
     def _reset_flash_btn(self):
-        if not self.flashing:
-            self.flash_btn.set_text("⚡ [ FLASH SEEDER FIRMWARE // 書込開始 ] ⚡")
-            self._update_selection_state()
+        if not self.flashing and self.selected_port:
+            self.flash_btn.set_enabled(True)
+            self.flash_btn.set_text(f"⚡ FLASH SELECTED DEVICE ({self.selected_port.port})")
 
 
 def main():

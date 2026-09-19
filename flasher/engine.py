@@ -29,7 +29,8 @@ KNOWN_HARDWARE = [
 ]
 
 class PortInfo:
-    def __init__(self, port, desc, hwid, vid=None, pid=None, default_target="tdisplay-s3", is_known=False, display_name=""):
+    def __init__(self, port, desc, hwid, vid=None, pid=None, default_target="tdisplay-s3",
+                 is_known=False, display_name="", vid_str="", manufacturer="", product="", status=""):
         self.port = port
         self.desc = desc
         self.hwid = hwid
@@ -38,13 +39,17 @@ class PortInfo:
         self.default_target = default_target
         self.is_known = is_known
         self.display_name = display_name or f"{port} - {desc}"
+        self.vid_str = vid_str or (f"{vid:04X}:{pid:04X}" if vid and pid else "UNKNOWN")
+        self.manufacturer = manufacturer or "Generic"
+        self.product = product or desc or "Serial Device"
+        self.status = status or ("flash-candidate" if is_known else "serial-device")
 
     def __repr__(self):
-        return f"<PortInfo {self.port} {self.display_name} target={self.default_target}>"
+        return f"<PortInfo {self.port} {self.vid_str} {self.status} target={self.default_target}>"
 
 
 def scan_ports():
-    """Scans all available COM ports and prioritizes LilyGO / ESP32 hardware."""
+    """Scans all available COM ports and extracts detailed hardware metadata."""
     available = []
     for p in serial.tools.list_ports.comports():
         vid = p.vid
@@ -55,6 +60,10 @@ def scan_ports():
         target = "tdisplay-s3"
         is_known = False
         display_name = f"{p.device}: {desc}"
+        vid_str = f"{vid:04X}:{pid:04X}" if vid and pid else "UNKNOWN"
+        manufacturer = p.manufacturer or "Generic"
+        product = p.product or desc or "Serial Device"
+        status = "serial-device"
 
         # Match known VIDs/PIDs
         for hw in KNOWN_HARDWARE:
@@ -62,23 +71,39 @@ def scan_ports():
                 target = hw["target"]
                 is_known = True
                 display_name = f"{p.device}: {hw['name']}"
+                if vid == 0x303A and pid == 0x1001:
+                    manufacturer = "Espressif Systems"
+                    product = "USB JTAG/serial debug unit"
+                elif vid == 0x10C4:
+                    manufacturer = "Silicon Labs"
+                    product = "CP210x USB to UART Bridge"
+                status = "flash-candidate"
                 break
 
-        # Check description substrings if VID/PID didn't catch it
         if not is_known:
-            d_lower = desc.lower()
-            if "esp32-s3" in d_lower or "jtag" in d_lower:
-                target = "tdisplay-s3"
-                is_known = True
-                display_name = f"{p.device}: LilyGO T-Display-S3"
-            elif "cp210" in d_lower or "ch340" in d_lower or "ch9102" in d_lower or "uart" in d_lower or "usb-serial" in d_lower:
-                is_known = True
-                target = "tdisplay-s3"
-                display_name = f"{p.device}: {desc}"
+            if vid == 0xC0DE and pid == 0xCAFE:
+                manufacturer = "OSMU"
+                product = desc
+                status = "raw-installed"
+            else:
+                d_lower = desc.lower()
+                if "esp32-s3" in d_lower or "jtag" in d_lower:
+                    target = "tdisplay-s3"
+                    is_known = True
+                    display_name = f"{p.device}: LilyGO T-Display-S3"
+                    manufacturer = "Espressif Systems"
+                    product = "USB JTAG/serial debug unit"
+                    status = "flash-candidate"
+                elif "cp210" in d_lower or "ch340" in d_lower or "ch9102" in d_lower or "uart" in d_lower or "usb-serial" in d_lower:
+                    is_known = True
+                    target = "tdisplay-s3"
+                    display_name = f"{p.device}: {desc}"
+                    status = "flash-candidate"
 
-        info = PortInfo(p.device, desc, hwid, vid, pid, target, is_known, display_name)
-        # Put known hardware first
-        if is_known:
+        info = PortInfo(p.device, desc, hwid, vid, pid, target, is_known, display_name,
+                        vid_str, manufacturer, product, status)
+        # Put flash candidates first
+        if is_known or status == "flash-candidate":
             available.insert(0, info)
         else:
             available.append(info)
