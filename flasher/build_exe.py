@@ -41,6 +41,7 @@ def build():
         f"--icon={icon_path}",
         "--collect-all=esptool",
         "--collect-all=serial",
+        "--collect-all=PIL",
         f"--distpath={dist_dir}",
         f"--workpath={build_dir}",
         f"--specpath={flasher_dir}",
